@@ -91,7 +91,9 @@ def draw_detail_3(msp, start_x, start_y, width, height, thickness):
     w3, h3 = width / 3, height / 3
     pts = [(start_x + w3, start_y), (start_x + w3, start_y + t), (start_x + 2*w3, start_y + t), (start_x + 2*w3, start_y), (start_x + width, start_y), (start_x + width, start_y + h3), (start_x + width - t, start_y + h3), (start_x + width - t, start_y + 2*h3), (start_x + width, start_y + 2*h3), (start_x + width, start_y + height), (start_x + 2*w3, start_y + height), (start_x + 2*w3, start_y + height - t), (start_x + w3, start_y + height - t), (start_x + w3, start_y + height), (start_x, start_y + height), (start_x, start_y + 2*h3), (start_x + t, start_y + 2*h3), (start_x + t, start_y + h3), (start_x, start_y + h3), (start_x, start_y)]
     msp.add_lwpolyline(pts, close=True)
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, True)
+    
+    # Изменяем вызов, передавая bottom_offset=6.0 вместо 8.0
+    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, True, bottom_offset=6.0)
 
 def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font):
     # Инициализируем pts в самом начале, чтобы избежать UnboundLocalError
@@ -176,38 +178,33 @@ def get_base_dxf_bytes(w, y, include_name_plate):
     doc.units = units.MM
     msp = doc.modelspace()
     
-    # 1. Синий контур: (w+1) x (y+1)
+    # 1. Синий контур (Color 5)
     w1, h1 = w + 1, y + 1
     hw1, hh1 = w1 / 2, h1 / 2
     msp.add_lwpolyline([(-hw1, -hh1), (hw1, -hh1), (hw1, hh1), (-hw1, hh1)], close=True, dxfattribs={'color': 5})
     
-    # 2. Красный контур: +20 мм к синему
+    # 2. Красный контур (Color 1)
     w2, h2 = w1 + 20, h1 + 20
     hw2, hh2 = w2 / 2, h2 / 2
-    # Нижняя линия красного прямоугольника находится на уровне Y = -hh2
     red_bottom_y = -hh2 
     msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
     
-    # 3. Зеленая линия со скошенными краями (ушки направлены вниз)
-    # Горизонтальный отрезок на уровне red_bottom_y, ушки уходят вниз
-    line_w = w 
-    half_line_w = line_w / 2
-    bevel = 7 # Длина скоса
-    
-    pts_green = [
-        (-half_line_w - bevel, red_bottom_y - bevel), # Левый конец скоса (вниз)
-        (-half_line_w, red_bottom_y),                # Левая точка горизонтали
-        (half_line_w, red_bottom_y),                 # Правая точка горизонтали
-        (half_line_w + bevel, red_bottom_y - bevel)  # Правый конец скоса (вниз)
-    ]
-    msp.add_lwpolyline(pts_green, close=False, dxfattribs={'color': 3})
-    
-    # ... (далее ваш код для Name Plate)
-    
+    # 3. Зеленая линия (рисуем ТОЛЬКО если включен UI)
     if include_name_plate:
-        y_pos = -(y + 20) / 2
-        msp.add_lwpolyline([(-45-7, y_pos-7), (-45, y_pos), (45, y_pos), (45+7, y_pos-7)], close=False, dxfattribs={'color': 3})
-    
+        # Фиксированная ширина 90 мм для горизонтального отрезка
+        fixed_line_w = 90.0 
+        half_line_w = fixed_line_w / 2
+        bevel = 7 # Размер скоса
+        
+        # Линия привязана к red_bottom_y (нижняя красная линия)
+        pts_green = [
+            (-half_line_w - bevel, red_bottom_y - bevel), # Ушко вниз
+            (-half_line_w, red_bottom_y),                # Левый край горизонтали
+            (half_line_w, red_bottom_y),                 # Правый край горизонтали
+            (half_line_w + bevel, red_bottom_y - bevel)  # Ушко вниз
+        ]
+        msp.add_lwpolyline(pts_green, close=False, dxfattribs={'color': 3})
+
     stream = io.StringIO()
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
