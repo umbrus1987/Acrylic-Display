@@ -12,14 +12,27 @@ from matplotlib.textpath import TextPath
 from matplotlib.font_manager import FontProperties
 
 # --- Вспомогательные функции ---
-def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part):
+def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part, bottom_offset=8.0):
     r = 1.25
-    holes = [(start_x + 6, start_y + 6), (start_x + width - 6, start_y + 6), 
-             (start_x + width - 6, start_y + height - 6), (start_x + 6, start_y + height - 6)]
-    for h in holes: msp.add_circle(h, radius=r)
+    # Основные 4 угла
+    holes = [
+        (start_x + 6, start_y + bottom_offset), 
+        (start_x + width - 6, start_y + bottom_offset), 
+        (start_x + width - 6, start_y + height - 6), 
+        (start_x + 6, start_y + height - 6)
+    ]
+    for h in holes: 
+        msp.add_circle(h, radius=r)
+        
     if is_wide:
+        # Оставляем ТОЛЬКО верхнее центральное отверстие для широких деталей
         msp.add_circle((start_x + width/2, start_y + height - 6), radius=r)
-        if is_bottom_part: msp.add_circle((start_x + width/2, start_y + 6), radius=r)
+        
+        # Убираем нижнее центральное отверстие, если вы его там не хотите
+        # Если оно нужно ТОЛЬКО на основании (Base/Detail 3), оставьте проверку:
+        if is_bottom_part: 
+            msp.add_circle((start_x + width/2, start_y + bottom_offset), radius=r)
+            
     if is_high:
         msp.add_circle((start_x + 6, start_y + height/2), radius=r)
         msp.add_circle((start_x + width - 6, start_y + height/2), radius=r)
@@ -29,16 +42,49 @@ def draw_detail_1(msp, start_x, start_y, width, height, thickness):
     w_base, h_base = width - 2*t, height - t
     w3, h3 = w_base / 3, h_base / 3
     sx, sy = start_x + t, start_y
-    pts = [(sx, sy), (sx + w_base, sy), (sx + w_base, sy + h3), (sx + w_base + t, sy + h3), (sx + w_base + t, sy + 2*h3), (sx + w_base, sy + 2*h3), (sx + w_base, sy + h_base), (sx + 2*w3, sy + h_base), (sx + 2*w3, sy + h_base + t), (sx + w3, sy + h_base + t), (sx + w3, sy + h_base), (sx, sy + h_base), (sx, sy + 2*h3), (sx - t, sy + 2*h3), (sx - t, sy + h3), (sx, sy + h3), (sx, sy)]
+    
+    # Сдвиг низа паза на +1 мм, а верха на +2 мм (удлинение паза на 1 мм)
+    shift_bottom = 1.0
+    shift_top = 2.0
+    ext = 1.0 
+    
+    pts = [
+        (sx, sy), 
+        (sx + w_base, sy), 
+        
+        # Правый вертикальный паз:
+        (sx + w_base, sy + h3 + shift_bottom),
+        (sx + w_base + t, sy + h3 + shift_bottom),
+        (sx + w_base + t, sy + 2*h3 + shift_top),
+        (sx + w_base, sy + 2*h3 + shift_top),
+        
+        (sx + w_base, sy + h_base), 
+        
+        # Верхний горизонтальный шип (сохранен с ext=1.0):
+        (sx + 2*w3 + ext, sy + h_base),      
+        (sx + 2*w3 + ext, sy + h_base + t),  
+        (sx + w3 - ext, sy + h_base + t),    
+        (sx + w3 - ext, sy + h_base),        
+        
+        (sx, sy + h_base), 
+        
+        # Левый вертикальный паз:
+        (sx, sy + 2*h3 + shift_top),
+        (sx - t, sy + 2*h3 + shift_top),
+        (sx - t, sy + h3 + shift_bottom),
+        (sx, sy + h3 + shift_bottom), 
+        
+        (sx, sy)
+    ]
     msp.add_lwpolyline(pts, close=True)
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False)
+    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False, bottom_offset=8.0)
 
 def draw_detail_2(msp, start_x, start_y, width, height, thickness):
     t = thickness
     h_base = height - t
     pts = [(start_x, start_y), (start_x + width, start_y), (start_x + width, start_y + height/3), (start_x + width - t, start_y + height/3), (start_x + width - t, start_y + 2*height/3), (start_x + width, start_y + 2*height/3), (start_x + width, start_y + h_base), (start_x + 2*width/3, start_y + h_base), (start_x + 2*width/3, start_y + h_base + t), (start_x + width/3, start_y + h_base + t), (start_x + width/3, start_y + h_base), (start_x, start_y + h_base), (start_x, start_y + 2*height/3), (start_x + t, start_y + 2*height/3), (start_x + t, start_y + height/3), (start_x, start_y + height/3), (start_x, start_y)]
     msp.add_lwpolyline(pts, close=True)
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False)
+    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False, bottom_offset=8.0)
 
 def draw_detail_3(msp, start_x, start_y, width, height, thickness):
     t = thickness
@@ -129,14 +175,39 @@ def get_base_dxf_bytes(w, y, include_name_plate):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
-    configs = [(w, y, 5), (w + 20, y + 20, 1), (w + 40, y + 40, 7)]
-    for width, depth, color in configs:
-        hw, hh = width / 2, depth / 2
-        pts = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
-        msp.add_lwpolyline(pts, close=True, dxfattribs={'color': color})
+    
+    # 1. Синий контур: (w+1) x (y+1)
+    w1, h1 = w + 1, y + 1
+    hw1, hh1 = w1 / 2, h1 / 2
+    msp.add_lwpolyline([(-hw1, -hh1), (hw1, -hh1), (hw1, hh1), (-hw1, hh1)], close=True, dxfattribs={'color': 5})
+    
+    # 2. Красный контур: +20 мм к синему
+    w2, h2 = w1 + 20, h1 + 20
+    hw2, hh2 = w2 / 2, h2 / 2
+    # Нижняя линия красного прямоугольника находится на уровне Y = -hh2
+    red_bottom_y = -hh2 
+    msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
+    
+    # 3. Зеленая линия со скошенными краями (ушки направлены вниз)
+    # Горизонтальный отрезок на уровне red_bottom_y, ушки уходят вниз
+    line_w = w 
+    half_line_w = line_w / 2
+    bevel = 7 # Длина скоса
+    
+    pts_green = [
+        (-half_line_w - bevel, red_bottom_y - bevel), # Левый конец скоса (вниз)
+        (-half_line_w, red_bottom_y),                # Левая точка горизонтали
+        (half_line_w, red_bottom_y),                 # Правая точка горизонтали
+        (half_line_w + bevel, red_bottom_y - bevel)  # Правый конец скоса (вниз)
+    ]
+    msp.add_lwpolyline(pts_green, close=False, dxfattribs={'color': 3})
+    
+    # ... (далее ваш код для Name Plate)
+    
     if include_name_plate:
         y_pos = -(y + 20) / 2
         msp.add_lwpolyline([(-45-7, y_pos-7), (-45, y_pos), (45, y_pos), (45+7, y_pos-7)], close=False, dxfattribs={'color': 3})
+    
     stream = io.StringIO()
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
@@ -167,9 +238,10 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.image("Picture.png", use_container_width=True)
 with col2:
-    width_x = st.number_input("Ширина (X)", 100, 800, 150)
-    depth_y = st.number_input("Глубина (Y)", 100, 800, 100)
-    height_z = st.number_input("Высота (Z)", 100, 800, 100)
+    width_x = st.number_input("Ширина (X)", 50, 800
+, 150)
+    depth_y = st.number_input("Глубина (Y)", 50, 800, 100)
+    height_z = st.number_input("Высота (Z)", 50, 800, 100)
     if st.button("Generate Main"):
         st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, 3.0)
         # Имя файла: Main_X x Y x Z
