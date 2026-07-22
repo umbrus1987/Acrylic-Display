@@ -179,7 +179,7 @@ def get_base_dxf_bytes(w, y, include_name_plate):
     msp = doc.modelspace()
     
     # 1. Синий контур (Color 5)
-    w1, h1 = w + 1, y + 1
+    w1, h1 = w + 2, y + 2
     hw1, hh1 = w1 / 2, h1 / 2
     msp.add_lwpolyline([(-hw1, -hh1), (hw1, -hh1), (hw1, hh1), (-hw1, hh1)], close=True, dxfattribs={'color': 5})
     
