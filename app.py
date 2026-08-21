@@ -213,17 +213,12 @@ def get_base_dxf_bytes(w, y, include_name_plate):
 st.title("Acrylic Display Generator")
 st.markdown("""
     <style>
-    /* Оставляем обычные кнопки (Generate) в покое */
-    /* div.stButton > button не трогаем */
-    
     /* Стили только для кнопок скачивания (Download) */
     div.stDownloadButton > button {
         background-color: #FF4B4B !important;
         color: white !important;
         border: 1px solid #FF4B4B !important;
     }
-    
-    /* Эффект при наведении на кнопку скачивания */
     div.stDownloadButton > button:hover {
         background-color: #FF2B2B !important;
         color: white !important;
@@ -231,18 +226,36 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
+# Переключатель единиц измерения
+unit_system = st.radio("Единицы измерения", ["мм", "дюймы"], horizontal=True)
+
+# Коэффициент пересчета: если выбраны дюймы, умножаем на 25.4 для получения мм
+scale_factor = 25.4 if unit_system == "дюймы" else 1.0
+
 col1, col2 = st.columns([1, 1])
 with col1:
     st.image("Picture.png", use_container_width=True)
 with col2:
-    width_x = st.number_input("Ширина (X)", 50, 800
-, 150)
-    depth_y = st.number_input("Глубина (Y)", 50, 800, 100)
-    height_z = st.number_input("Высота (Z)", 50, 800, 100)
+    # Ввод размеров с учетом выбранных единиц
+    if unit_system == "мм":
+        inp_w = st.number_input("Ширина (X)", 50, 800, 150)
+        inp_y = st.number_input("Глубина (Y)", 50, 800, 100)
+        inp_z = st.number_input("Высота (Z)", 50, 800, 100)
+    else:
+        # Для дюймов делаем шаг удобнее, например, с точностью до десятых
+        inp_w = st.number_input("Ширина (X, дюймы)", 2.0, 31.5, 6.0, step=0.5)
+        inp_y = st.number_input("Глубина (Y, дюймы)", 2.0, 31.5, 4.0, step=0.5)
+        inp_z = st.number_input("Высота (Z, дюймы)", 2.0, 31.5, 4.0, step=0.5)
+
+    # Пересчитываем введенные значения в миллиметры для функций генерации
+    width_x = inp_w * scale_factor
+    depth_y = inp_y * scale_factor
+    height_z = inp_z * scale_factor
+
     if st.button("Generate Main"):
         st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, 3.0)
-        # Имя файла: Main_X x Y x Z
-        st.session_state['main_file_name'] = f"Main_{width_x}x{depth_y}x{height_z}.dxf"
+        st.session_state['main_file_name'] = f"Main_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}.dxf"
     
     if 'dxf_data' in st.session_state:
         st.download_button(
@@ -255,8 +268,7 @@ with col2:
     if st.button("Generate Base"):
         include_plate = st.session_state.get('name_plate_val', False)
         st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, include_plate)
-        # Имя файла: Base_X x Y
-        st.session_state['base_file_name'] = f"Base_{width_x}x{depth_y}.dxf"
+        st.session_state['base_file_name'] = f"Base_{width_x:.1f}x{depth_y:.1f}.dxf"
     
     if 'base_dxf' in st.session_state:
         st.download_button(
@@ -270,7 +282,6 @@ if st.session_state.get('name_plate_val', False):
     plate_text = st.text_input("Текст (max 16)", max_chars=16)
     plate_font = st.selectbox("Шрифт", ["STANDARD", "ROMANS", "ITALIC"])
     if plate_text:
-        # Передаем font_name в функцию
         show_preview(91, 87, 13, plate_text, plate_font)
     if st.button("Generate Name Plate File"):
         doc = ezdxf.new('R2010')
@@ -281,7 +292,6 @@ if st.session_state.get('name_plate_val', False):
         doc.write(stream)
         st.session_state['plate_dxf'] = io.BytesIO(stream.getvalue().encode('utf-8'))
         
-        # Имя файла: Plate_Текст
         clean_text = "".join([c for c in plate_text if c.isalnum() or c in (' ', '_')]).strip()
         st.session_state['plate_file_name'] = f"Plate_{clean_text if clean_text else 'Custom'}.dxf"
         
