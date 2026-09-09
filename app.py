@@ -221,17 +221,19 @@ def get_cardboard_box_dxf_bytes(w, y):
     hw, hy = base_w / 2, base_y / 2
     
     fold_gap = 9.0
-    wall_height = 45.0
-    total_offset = fold_gap + wall_height # 54 мм
+    wall_height = 45.0 + 7.0 # Увеличили высоту на 7 мм (итого 52 мм)
+    total_offset = fold_gap + wall_height # 9 + 52 = 61 мм (граница перед дополнительным ухом)
     
-    # Оверлап (нахлёст) для горизонтальных ушей по углам = 9 мм
-    overlap = 9.0
+    overlap = 9.0 # Нахлёст по углам
+    extra_flap = y / 2.0 # Дополнительное ухо = половина глубины коробки
     
-    # 1. Внешний контур реза (Красный - Цвет 1) с правильными прямыми углами
+    # 1. Внешний контур реза (Красный - Цвет 1)
     cross_pts = [
-        # Верхний клапан (шире на overlap с обеих сторон)
+        # Верхнее ухо (с учетом дополнительной секции)
         (-hw - overlap, hy),
         (-hw - overlap, hy + total_offset),
+        (-hw - overlap, hy + total_offset + extra_flap),
+        (hw + overlap, hy + total_offset + extra_flap),
         (hw + overlap, hy + total_offset),
         (hw + overlap, hy),
         
@@ -240,9 +242,11 @@ def get_cardboard_box_dxf_bytes(w, y):
         (hw + total_offset, -hy),
         (hw, -hy),
         
-        # Нижний клапан (шире на overlap с обеих сторон)
+        # Нижнее ухо (с учетом дополнительной секции)
         (hw + overlap, -hy),
         (hw + overlap, -hy - total_offset),
+        (hw + overlap, -hy - total_offset - extra_flap),
+        (-hw - overlap, -hy - total_offset - extra_flap),
         (-hw - overlap, -hy - total_offset),
         (-hw - overlap, -hy),
         
@@ -254,16 +258,17 @@ def get_cardboard_box_dxf_bytes(w, y):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
-    # 2. Двойные линии сгиба / биговки (Желтый - Цвет 2)
-    # Горизонтальные линии теперь соответствуют расширенной ширине ушей (-hw - overlap до hw + overlap)
+    # 2. Двойные и дополнительные линии сгиба / биговки (Желтый - Цвет 2)
     folds = [
-        # Верхние сгибы (горизонтальные)
+        # Верхние сгибы (горизонтальные): двойной у края + дополнительный на границе уха
         [(-hw - overlap, hy), (hw + overlap, hy)],
         [(-hw - overlap, hy + fold_gap), (hw + overlap, hy + fold_gap)],
+        [(-hw - overlap, hy + total_offset), (hw + overlap, hy + total_offset)],
         
-        # Нижние сгибы (горизонтальные)
+        # Нижние сгибы (горизонтальные): двойной у края + дополнительный на границе уха
         [(-hw - overlap, -hy), (hw + overlap, -hy)],
         [(-hw - overlap, -hy - fold_gap), (hw + overlap, -hy - fold_gap)],
+        [(-hw - overlap, -hy - total_offset), (hw + overlap, -hy - total_offset)],
         
         # Правые сгибы (вертикальные)
         [(hw, -hy), (hw, hy)],
