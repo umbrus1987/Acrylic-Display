@@ -221,31 +221,31 @@ def get_cardboard_box_dxf_bytes(w, y):
     hw, hy = base_w / 2, base_y / 2
     
     fold_gap = 9.0
-    wall_height = 45.0 + 7.0 # Базовая высота стенки с добавлением 7 мм (52 мм)
+    wall_height = 45.0 + 7.0 # 52 мм
+    wall_end_offset = wall_height # 52 мм
     
-    # Смещение до начала двойного сгиба перед дополнительным ухом
-    wall_end_offset = wall_height # 52 мм от края дна
-    extra_flap = y / 2.0 # Дополнительное ухо = половина глубины коробки
+    # Дополнительное ухо: (y + 27) / 2
+    extra_flap = base_y / 2.0 
     
-    # Полный вылет верх/низ: дно + стенка (52) + двойной сгиб (9) + дополнительное ухо
+    # Полный вылет контура реза наружу от центра дна
     total_offset = wall_height + fold_gap + extra_flap
     
     overlap = 9.0 # Нахлёст по углам
     
     # 1. Внешний контур реза (Красный - Цвет 1)
     cross_pts = [
-        # Верхнее ухо
+        # Верхнее ухо (наружу от hy)
         (-hw - overlap, hy),
         (-hw - overlap, hy + total_offset),
         (hw + overlap, hy + total_offset),
         (hw + overlap, hy),
         
         # Правый вертикальный борт
-        (hw + fold_gap + wall_height, hy), # С учетом высоты борта
+        (hw + fold_gap + wall_height, hy),
         (hw + fold_gap + wall_height, -hy),
         (hw, -hy),
         
-        # Нижнее ухо
+        # Нижнее ухо (наружу от -hy)
         (hw + overlap, -hy),
         (hw + overlap, -hy - total_offset),
         (-hw - overlap, -hy - total_offset),
@@ -259,21 +259,21 @@ def get_cardboard_box_dxf_bytes(w, y):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
-    # 2. Двойные линии сгиба / биговки (Желтый - Цвет 2)
+    # 2. Двойные линии сгиба / биговки (Желтый - Цвет 2) - все идут наружу
     folds = [
-        # Верхние сгибы (у основания дна — двойные)
+        # Верхние сгибы у основания дна (двойные: ровно по краю hy и на 9 мм наружу)
         [(-hw - overlap, hy), (hw + overlap, hy)],
         [(-hw - overlap, hy + fold_gap), (hw + overlap, hy + fold_gap)],
         
-        # Верхние сгибы (на границе перед дополнительным ухом — тоже двойные на расстоянии 9 мм)
+        # Верхние сгибы перед дополнительным ухом (двойные: на границе 52 мм и еще +9 мм наружу)
         [(-hw - overlap, hy + wall_end_offset), (hw + overlap, hy + wall_end_offset)],
         [(-hw - overlap, hy + wall_end_offset + fold_gap), (hw + overlap, hy + wall_end_offset + fold_gap)],
         
-        # Нижние сгибы (у основания дна — двойные)
+        # Нижние сгибы у основания дна (двойные: ровно по краю -hy и на 9 мм наружу)
         [(-hw - overlap, -hy), (hw + overlap, -hy)],
         [(-hw - overlap, -hy - fold_gap), (hw + overlap, -hy - fold_gap)],
         
-        # Нижние сгибы (на границе перед дополнительным ухом — двойные)
+        # Нижние сгибы перед дополнительным ухом (двойные: на границе -52 мм и еще +9 мм наружу)
         [(-hw - overlap, -hy - wall_end_offset), (hw + overlap, -hy - wall_end_offset)],
         [(-hw - overlap, -hy - wall_end_offset - fold_gap), (hw + overlap, -hy - wall_end_offset - fold_gap)],
         
