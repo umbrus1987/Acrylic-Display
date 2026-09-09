@@ -209,6 +209,60 @@ def get_base_dxf_bytes(w, y, include_name_plate):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
+def get_cardboard_box_dxf_bytes(w, y):
+    doc = ezdxf.new('R2010')
+    doc.units = units.MM
+    msp = doc.modelspace()
+    
+    # Основание коробки: к Ширине и Глубине добавляется по 27 мм
+    base_w = w + 27.0
+    base_y = y + 27.0
+    hz = 45.0 # Фиксированная высота стенки коробки
+    
+    hw, hy = base_w / 2, base_y / 2
+    
+    # 1. Внешний контур (Линии реза - Цвет 1 / Красный)
+    cross_pts = [
+        # Верхний клапан (стенка hz)
+        (-hw, hy), (-hw, hy + hz), (hw, hy + hz), (hw, hy),
+        # Правый клапан
+        (hw + hz, hy), (hw + hz, -hy), (hw, -hy),
+        # Нижний клапан
+        (hw, -hy - hz), (-hw, -hy - hz), (-hw, -hy),
+        # Левый клапан
+        (-hw - hz, -hy), (-hw - hz, hy), (-hw, hy)
+    ]
+    msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
+    
+    # 2. Двойные линии сгиба / биговки для толстого картона (9 мм между линиями)
+    # Каждая пара линий разнесена на ±4.5 мм от центральной оси сгиба
+    offset_fold = 4.5
+    
+    folds = [
+        # Верхний сгиб (две линии по горизонтали)
+        [(-hw, hy - offset_fold), (hw, hy - offset_fold)],
+        [(-hw, hy + offset_fold), (hw, hy + offset_fold)],
+        
+        # Правый сгиб (две линии по вертикали)
+        [(hw - offset_fold, -hy), (hw - offset_fold, hy)],
+        [(hw + offset_fold, -hy), (hw + offset_fold, hy)],
+        
+        # Нижний сгиб (две линии по горизонтали)
+        [(-hw, -hy - offset_fold), (hw, -hy - offset_fold)],
+        [(-hw, -hy + offset_fold), (hw, -hy + offset_fold)],
+        
+        # Левый сгиб (две линии по вертикали)
+        [(-hw - offset_fold, -hy), (-hw - offset_fold, hy)],
+        [(-hw + offset_fold, -hy), (-hw + offset_fold, hy)]
+    ]
+    
+    for fold in folds:
+        msp.add_lwpolyline(fold, close=False, dxfattribs={'color': 2})
+        
+    stream = io.StringIO()
+    doc.write(stream)
+    return io.BytesIO(stream.getvalue().encode('utf-8'))
+
 # --- UI ---
 st.title("Acrylic Display Generator")
 st.markdown("""
@@ -300,4 +354,19 @@ if st.session_state.get('name_plate_val', False):
             label="Скачать Plate DXF", 
             data=st.session_state['plate_dxf'], 
             file_name=st.session_state.get('plate_file_name', 'Plate.dxf')
+
+st.divider()
+    st.subheader("Cardboard Box (Cross Net)")
+    
+    if st.button("Generate Cardboard Box"):
+        # Передаем только Ширину и Глубину (высота фиксирована 45мм внутри функции)
+        st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y)
+        st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}.dxf"
+    
+    if 'box_dxf' in st.session_state:
+        st.download_button(
+            label="Скачать Box DXF", 
+            data=st.session_state['box_dxf'], 
+            file_name=st.session_state.get('box_file_name', 'Box.dxf')
         )
+        
