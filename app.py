@@ -224,12 +224,12 @@ def get_cardboard_box_dxf_bytes(w, y):
     wall_height = 45.0
     total_offset = fold_gap + wall_height # 54 мм
     
-    # Дополнительный оверлап (нахлёст) для горизонтальных ушей по углам
+    # Оверлап (нахлёст) для горизонтальных ушей по углам = 9 мм
     overlap = 9.0
     
-    # 1. Внешний контур реза (Красный - Цвет 1) с учетом оверлапа на горизонтальных клапанах
+    # 1. Внешний контур реза (Красный - Цвет 1) с правильными прямыми углами
     cross_pts = [
-        # Верхний клапан (шире на overlap с каждой стороны для нахлёста)
+        # Верхний клапан (шире на overlap с обеих сторон)
         (-hw - overlap, hy + total_offset), 
         (hw + overlap, hy + total_offset), 
         (hw + overlap, hy), 
@@ -239,15 +239,17 @@ def get_cardboard_box_dxf_bytes(w, y):
         (hw + total_offset, -hy), 
         (hw, -hy), 
         
-        # Нижний клапан (шире на overlap с каждой стороны для нахлёста)
+        # Нижний клапан (шире на overlap с обеих сторон)
         (hw + overlap, -hy - total_offset), 
         (-hw - overlap, -hy - total_offset), 
         (-hw - overlap, -hy), 
         
-        # Левый вертикальный борт
+        # Левый вертикальный борт (возвращаемся корректно через все углы)
+        (-hw, -hy),
         (-hw - total_offset, -hy), 
         (-hw - total_offset, hy), 
-        (-hw, hy)
+        (-hw, hy),
+        (-hw - overlap, hy) # Замыкаем левую сторону верхнего клапана
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
