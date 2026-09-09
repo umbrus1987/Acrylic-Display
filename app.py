@@ -224,7 +224,7 @@ def get_cardboard_box_dxf_bytes(w, y):
     wall_height = 45.0
     
     # Общая длина луча от центра до внешнего края реза = дно + зона сгиба (9) + высота стенки (45)
-    total_offset = fold_gap + wall_height # 9 + 45 = 54 мм
+    total_offset = fold_gap + wall_height # 54 мм
     
     # 1. Внешний контур реза (Красный - Цвет 1)
     cross_pts = [
@@ -244,8 +244,6 @@ def get_cardboard_box_dxf_bytes(w, y):
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
     # 2. Двойные линии сгиба / биговки (Желтый - Цвет 2)
-    # Первая линия — строго по границе дна (hw, hy)
-    # Вторая линия — ровно на 9 мм наружу от первой
     folds = [
         # Верхние сгибы (горизонтальные)
         [(-hw, hy), (hw, hy)],
@@ -260,13 +258,9 @@ def get_cardboard_box_dxf_bytes(w, y):
         [(hw + fold_gap, -hy), (hw + fold_gap, hy)],
         
         # Левые сгибы (вертикальные)
-        [(-line_x := -hw, -hy), (-hw, hy)], # базово
+        [(-hw, -hy), (-hw, hy)],
         [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)]
     ]
-    
-    # Исправим левый сгиб аккуратно:
-    folds[-1] = [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)]
-    folds[-2] = [(-hw, -hy), (-hw, hy)]
     
     for fold in folds:
         msp.add_lwpolyline(fold, close=False, dxfattribs={'color': 2})
