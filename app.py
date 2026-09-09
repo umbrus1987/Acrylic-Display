@@ -229,45 +229,39 @@ def get_cardboard_box_dxf_bytes(w, y):
     
     # 1. Внешний контур реза (Красный - Цвет 1) с правильными прямыми углами
     cross_pts = [
-        # Верхний клапан (шире на overlap с обеих сторон)
+        # Верхний клапан
         (-hw - overlap, hy + total_offset), 
         (hw + overlap, hy + total_offset), 
         (hw + overlap, hy), 
         
         # Правый вертикальный борт
-        (hw + total_offset, hy), 
-        (hw + total_offset, -hy), 
-        (hw, -hy), 
+        (hw, hy),
+        (hw + total_offset, hy),
+        (hw + total_offset, -hy),
+        (hw, -hy),
         
-        # Нижний клапан (шире на overlap с обеих сторон)
+        # Нижний клапан
         (hw + overlap, -hy - total_offset), 
         (-hw - overlap, -hy - total_offset), 
         (-hw - overlap, -hy), 
         
-        # Левый вертикальный борт (возвращаемся корректно через все углы)
+        # Левый вертикальный борт
         (-hw, -hy),
         (-hw - total_offset, -hy), 
         (-hw - total_offset, hy), 
         (-hw, hy),
-        (-hw - overlap, hy) # Замыкаем левую сторону верхнего клапана
+        (-hw - overlap, hy)
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
     # 2. Двойные линии сгиба / биговки (Желтый - Цвет 2)
     folds = [
-        # Верхние сгибы (горизонтальные)
         [(-hw, hy), (hw, hy)],
         [(-hw, hy + fold_gap), (hw, hy + fold_gap)],
-        
-        # Нижние сгибы (горизонтальные)
         [(-hw, -hy), (hw, -hy)],
         [(-hw, -hy - fold_gap), (hw, -hy - fold_gap)],
-        
-        # Правые сгибы (вертикальные)
         [(hw, -hy), (hw, hy)],
         [(hw + fold_gap, -hy), (hw + fold_gap, hy)],
-        
-        # Левые сгибы (вертикальные)
         [(-hw, -hy), (-hw, hy)],
         [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)]
     ]
