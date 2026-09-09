@@ -220,18 +220,21 @@ def get_cardboard_box_dxf_bytes(w, y):
     
     hw, hy = base_w / 2, base_y / 2
     
+    # Определяем больший размер между шириной и глубиной (или с учетом введенных пропорций)
+    max_dim = max(base_w, base_y)
+    
     fold_gap = 9.0
     
     # 1. Горизонтальные уши (верх/низ): стенка 52 мм (45 + 7)
     wall_height_y = 45.0 + 7.0 
     wall_total_offset_y = wall_height_y + fold_gap # 52 + 9 = 61 мм
-    extra_flap_y = base_y / 2.0 
+    extra_flap_y = max_dim / 2.0 # Используем максимальный размер для пропорций уха
     total_offset_y = wall_total_offset_y + fold_gap + extra_flap_y
     
     # 2. Вертикальные уши (лево/право): стенка ровно 45 мм (без +7)
     wall_height_x = 45.0 
     wall_total_offset_x = wall_height_x + fold_gap # 45 + 9 = 54 мм
-    extra_flap_x = 50.0 # Фиксированные 50 мм
+    extra_flap_x = 50.0 # Фиксированные 50 мм (или можно тоже завязать на max_dim, если требуется)
     total_offset_x = wall_total_offset_x + fold_gap + extra_flap_x
     
     overlap = 9.0 # Нахлёст по углам
@@ -244,7 +247,7 @@ def get_cardboard_box_dxf_bytes(w, y):
         (hw + overlap, hy + total_offset_y),
         (hw + overlap, hy),
         
-        # Правое ухо (вертикальное, стенка 45 мм + сгиб + 50 мм)
+        # Правое ухо (вертикальное)
         (hw, hy),
         (hw + total_offset_x, hy),
         (hw + total_offset_x, -hy),
@@ -256,7 +259,7 @@ def get_cardboard_box_dxf_bytes(w, y):
         (-hw - overlap, -hy - total_offset_y),
         (-hw - overlap, -hy),
         
-        # Левое ухо (вертикальное, стенка 45 мм + сгиб + 50 мм)
+        # Левое ухо (вертикальное)
         (-hw, -hy),
         (-hw - total_offset_x, -hy),
         (-hw - total_offset_x, hy),
@@ -269,28 +272,28 @@ def get_cardboard_box_dxf_bytes(w, y):
         # Верхние сгибы у основания дна (двойные)
         [(-hw - overlap, hy), (hw + overlap, hy)],
         [(-hw - overlap, hy + fold_gap), (hw + overlap, hy + fold_gap)],
-        # Верхние сгибы перед ухом (двойные на границе wall_total_offset_y)
+        # Верхние сгибы перед ухом
         [(-hw - overlap, hy + wall_total_offset_y), (hw + overlap, hy + wall_total_offset_y)],
         [(-hw - overlap, hy + wall_total_offset_y + fold_gap), (hw + overlap, hy + wall_total_offset_y + fold_gap)],
         
         # Нижние сгибы у основания дна (двойные)
         [(-hw - overlap, -hy), (hw + overlap, -hy)],
         [(-hw - overlap, -hy - fold_gap), (hw + overlap, -hy - fold_gap)],
-        # Нижние сгибы перед ухом (двойные)
+        # Нижние сгибы перед ухом
         [(-hw - overlap, -hy - wall_total_offset_y), (hw + overlap, -hy - wall_total_offset_y)],
         [(-hw - overlap, -hy - wall_total_offset_y - fold_gap), (hw + overlap, -hy - wall_total_offset_y - fold_gap)],
         
         # Правые сгибы у основания дна (двойные)
         [(hw, -hy), (hw, hy)],
         [(hw + fold_gap, -hy), (hw + fold_gap, hy)],
-        # Правые сгибы перед ухом 50мм (двойные на границе wall_total_offset_x)
+        # Правые сгибы перед ухом (двойные)
         [(hw + wall_total_offset_x, -hy), (hw + wall_total_offset_x, hy)],
         [(hw + wall_total_offset_x + fold_gap, -hy), (hw + wall_total_offset_x + fold_gap, hy)],
         
         # Левые сгибы у основания дна (двойные)
         [(-hw, -hy), (-hw, hy)],
         [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)],
-        # Левые сгибы перед ухом 50мм (двойные)
+        # Левые сгибы перед ухом (двойные)
         [(-hw - wall_total_offset_x, -hy), (-hw - wall_total_offset_x, hy)],
         [(-hw - wall_total_offset_x - fold_gap, -hy), (-hw - wall_total_offset_x - fold_gap, hy)]
     ]
