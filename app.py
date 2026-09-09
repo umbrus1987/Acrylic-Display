@@ -222,21 +222,29 @@ def get_cardboard_box_dxf_bytes(w, y):
     
     fold_gap = 9.0
     wall_height = 45.0
-    
-    # Общая длина луча от центра до внешнего края реза = дно + зона сгиба (9) + высота стенки (45)
     total_offset = fold_gap + wall_height # 54 мм
     
-    # 1. Внешний контур реза (Красный - Цвет 1)
+    # Дополнительный оверлап (нахлёст) для горизонтальных ушей по углам
+    overlap = 18.0
+    
+    # 1. Внешний контур реза (Красный - Цвет 1) с учетом оверлапа на горизонтальных клапанах
     cross_pts = [
-        (-hw, hy + total_offset), 
-        (hw, hy + total_offset), 
-        (hw, hy), 
+        # Верхний клапан (шире на overlap с каждой стороны для нахлёста)
+        (-hw - overlap, hy + total_offset), 
+        (hw + overlap, hy + total_offset), 
+        (hw + overlap, hy), 
+        
+        # Правый вертикальный борт
         (hw + total_offset, hy), 
         (hw + total_offset, -hy), 
         (hw, -hy), 
-        (hw, -hy - total_offset), 
-        (-hw, -hy - total_offset), 
-        (-hw, -hy), 
+        
+        # Нижний клапан (шире на overlap с каждой стороны для нахлёста)
+        (hw + overlap, -hy - total_offset), 
+        (-hw - overlap, -hy - total_offset), 
+        (-hw - overlap, -hy), 
+        
+        # Левый вертикальный борт
         (-hw - total_offset, -hy), 
         (-hw - total_offset, hy), 
         (-hw, hy)
