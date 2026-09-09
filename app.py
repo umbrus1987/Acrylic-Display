@@ -354,7 +354,7 @@ if st.session_state.get('name_plate_val', False):
             label="Скачать Plate DXF", 
             data=st.session_state['plate_dxf'], 
             file_name=st.session_state.get('plate_file_name', 'Plate.dxf')
-
+        )
 st.divider()
     st.subheader("Cardboard Box (Cross Net)")
     
