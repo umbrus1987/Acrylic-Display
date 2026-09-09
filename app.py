@@ -214,47 +214,59 @@ def get_cardboard_box_dxf_bytes(w, y):
     doc.units = units.MM
     msp = doc.modelspace()
     
-    # Основание коробки: к Ширине и Глубине добавляется по 27 мм
+    # Базовый размер дна (чистый размер)
     base_w = w + 27.0
     base_y = y + 27.0
-    hz = 45.0 # Фиксированная высота стенки коробки
     
     hw, hy = base_w / 2, base_y / 2
     
-    # 1. Внешний контур (Линии реза - Цвет 1 / Красный)
+    fold_gap = 9.0
+    wall_height = 45.0
+    
+    # Общая длина луча от центра до внешнего края реза = дно + зона сгиба (9) + высота стенки (45)
+    total_offset = fold_gap + wall_height # 9 + 45 = 54 мм
+    
+    # 1. Внешний контур реза (Красный - Цвет 1)
     cross_pts = [
-        # Верхний клапан (стенка hz)
-        (-hw, hy), (-hw, hy + hz), (hw, hy + hz), (hw, hy),
-        # Правый клапан
-        (hw + hz, hy), (hw + hz, -hy), (hw, -hy),
-        # Нижний клапан
-        (hw, -hy - hz), (-hw, -hy - hz), (-hw, -hy),
-        # Левый клапан
-        (-hw - hz, -hy), (-hw - hz, hy), (-hw, hy)
+        (-hw, hy + total_offset), 
+        (hw, hy + total_offset), 
+        (hw, hy), 
+        (hw + total_offset, hy), 
+        (hw + total_offset, -hy), 
+        (hw, -hy), 
+        (hw, -hy - total_offset), 
+        (-hw, -hy - total_offset), 
+        (-hw, -hy), 
+        (-hw - total_offset, -hy), 
+        (-hw - total_offset, hy), 
+        (-hw, hy)
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
-    # 2. Двойные линии сгиба / биговки для толстого картона (9 мм между линиями)
-    # Каждая пара линий разнесена на ±4.5 мм от центральной оси сгиба
-    offset_fold = 4.5
-    
+    # 2. Двойные линии сгиба / биговки (Желтый - Цвет 2)
+    # Первая линия — строго по границе дна (hw, hy)
+    # Вторая линия — ровно на 9 мм наружу от первой
     folds = [
-        # Верхний сгиб (две линии по горизонтали)
-        [(-hw, hy - offset_fold), (hw, hy - offset_fold)],
-        [(-hw, hy + offset_fold), (hw, hy + offset_fold)],
+        # Верхние сгибы (горизонтальные)
+        [(-hw, hy), (hw, hy)],
+        [(-hw, hy + fold_gap), (hw, hy + fold_gap)],
         
-        # Правый сгиб (две линии по вертикали)
-        [(hw - offset_fold, -hy), (hw - offset_fold, hy)],
-        [(hw + offset_fold, -hy), (hw + offset_fold, hy)],
+        # Нижние сгибы (горизонтальные)
+        [(-hw, -hy), (hw, -hy)],
+        [(-hw, -hy - fold_gap), (hw, -hy - fold_gap)],
         
-        # Нижний сгиб (две линии по горизонтали)
-        [(-hw, -hy - offset_fold), (hw, -hy - offset_fold)],
-        [(-hw, -hy + offset_fold), (hw, -hy + offset_fold)],
+        # Правые сгибы (вертикальные)
+        [(hw, -hy), (hw, hy)],
+        [(hw + fold_gap, -hy), (hw + fold_gap, hy)],
         
-        # Левый сгиб (две линии по вертикали)
-        [(-hw - offset_fold, -hy), (-hw - offset_fold, hy)],
-        [(-hw + offset_fold, -hy), (-hw + offset_fold, hy)]
+        # Левые сгибы (вертикальные)
+        [(-line_x := -hw, -hy), (-hw, hy)], # базово
+        [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)]
     ]
+    
+    # Исправим левый сгиб аккуратно:
+    folds[-1] = [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)]
+    folds[-2] = [(-hw, -hy), (-hw, hy)]
     
     for fold in folds:
         msp.add_lwpolyline(fold, close=False, dxfattribs={'color': 2})
