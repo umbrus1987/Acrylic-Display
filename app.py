@@ -209,37 +209,43 @@ def get_base_dxf_bytes(w, y, include_name_plate):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
-def get_cardboard_box_dxf_bytes(w, y):
+def get_cardboard_box_dxf_bytes(w, y, h):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
     
-    # Базовый размер дна (чистый размер)
-    base_w = w + 27.0
-    base_y = y + 27.0
+    # 1. Отсекаем наименьший параметр, оставляя два наибольших для развёртки
+    dimensions = sorted([w, y, h])
+    # Самый маленький элемент (dimensions[0]) не участвует, берем два больших:
+    dim1, dim2 = dimensions[1], dimensions[2]
+    
+    # Теперь dim1 и dim2 — это два наибольших значения (например, ширина и глубина, либо глубина и высота и т.д.)
+    # Привязываем их к базовым размерам дна с учетом оффсета 27 мм
+    base_w = dim1 + 27.0
+    base_y = dim2 + 27.0
     
     hw, hy = base_w / 2, base_y / 2
     
-    # Определяем больший размер между шириной и глубиной (или с учетом введенных пропорций)
-    max_dim = max(base_w, base_y)
+    # Общий максимальный размер среди задействованных для пропорций ушей
+    max_dim = max(dim1, dim2)
     
     fold_gap = 9.0
     
-    # 1. Горизонтальные уши (верх/низ): стенка 52 мм (45 + 7)
+    # 2. Горизонтальные уши (верх/низ)
     wall_height_y = 45.0 + 7.0 
-    wall_total_offset_y = wall_height_y + fold_gap # 52 + 9 = 61 мм
-    extra_flap_y = max_dim / 2.0 # Используем максимальный размер для пропорций уха
+    wall_total_offset_y = wall_height_y + fold_gap 
+    extra_flap_y = max_dim / 2.0 
     total_offset_y = wall_total_offset_y + fold_gap + extra_flap_y
     
-    # 2. Вертикальные уши (лево/право): стенка ровно 45 мм (без +7)
+    # 3. Вертикальные уши (лево/право)
     wall_height_x = 45.0 
-    wall_total_offset_x = wall_height_x + fold_gap # 45 + 9 = 54 мм
-    extra_flap_x = 50.0 # Фиксированные 50 мм (или можно тоже завязать на max_dim, если требуется)
+    wall_total_offset_x = wall_height_x + fold_gap 
+    extra_flap_x = 50.0 
     total_offset_x = wall_total_offset_x + fold_gap + extra_flap_x
     
     overlap = 9.0 # Нахлёст по углам
     
-    # 1. Внешний контур реза (Красный - Цвет 1)
+    # 4. Внешний контур реза (Красный - Цвет 1)
     cross_pts = [
         # Верхнее ухо
         (-hw - overlap, hy),
@@ -267,7 +273,7 @@ def get_cardboard_box_dxf_bytes(w, y):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
-    # 2. Двойные линии сгиба / биговки (Желтый - Цвет 2)
+    # 5. Двойные линии сгиба / биговки (Желтый - Цвет 2)
     folds = [
         # Верхние сгибы у основания дна (двойные)
         [(-hw - overlap, hy), (hw + overlap, hy)],
