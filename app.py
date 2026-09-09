@@ -369,7 +369,7 @@ if st.button("Generate Cardboard Box"):
         st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y)
         st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}.dxf"
     
-    if 'box_dxf' in st.session_state:
+if 'box_dxf' in st.session_state:
         st.download_button(
             label="Скачать Box DXF", 
             data=st.session_state['box_dxf'], 
