@@ -221,72 +221,78 @@ def get_cardboard_box_dxf_bytes(w, y):
     hw, hy = base_w / 2, base_y / 2
     
     fold_gap = 9.0
-    wall_height = 45.0 + 7.0 # 52 мм — чистая высота стенки
     
-    # Компенсируем сгиб наружу, чтобы внутренний размер не уменьшался
-    # Общий вылет стенки от края дна = высота стенки + ширина зоны сгиба (9 мм)
-    wall_total_offset = wall_height + fold_gap # 52 + 9 = 61 мм
+    # 1. Горизонтальные уши (верх/низ): стенка 52 мм (45 + 7)
+    wall_height_y = 45.0 + 7.0 
+    wall_total_offset_y = wall_height_y + fold_gap # 52 + 9 = 61 мм
+    extra_flap_y = base_y / 2.0 
+    total_offset_y = wall_total_offset_y + fold_gap + extra_flap_y
     
-    # Дополнительное ухо: (y + 27) / 2, начинается после зоны сгиба
-    extra_flap = base_y / 2.0 
-    
-    # Полный вылет контура реза наружу от центра дна
-    total_offset = wall_total_offset + fold_gap + extra_flap
+    # 2. Вертикальные уши (лево/право): стенка ровно 45 мм (без +7)
+    wall_height_x = 45.0 
+    wall_total_offset_x = wall_height_x + fold_gap # 45 + 9 = 54 мм
+    extra_flap_x = 50.0 # Фиксированные 50 мм
+    total_offset_x = wall_total_offset_x + fold_gap + extra_flap_x
     
     overlap = 9.0 # Нахлёст по углам
     
     # 1. Внешний контур реза (Красный - Цвет 1)
     cross_pts = [
-        # Верхнее ухо (наружу от hy)
+        # Верхнее ухо
         (-hw - overlap, hy),
-        (-hw - overlap, hy + total_offset),
-        (hw + overlap, hy + total_offset),
+        (-hw - overlap, hy + total_offset_y),
+        (hw + overlap, hy + total_offset_y),
         (hw + overlap, hy),
         
-        # Правый вертикальный борт (с учетом полной компенсации наружу)
-        (hw + wall_total_offset, hy),
-        (hw + wall_total_offset, -hy),
+        # Правое ухо (вертикальное, стенка 45 мм + сгиб + 50 мм)
+        (hw, hy),
+        (hw + total_offset_x, hy),
+        (hw + total_offset_x, -hy),
         (hw, -hy),
         
-        # Нижнее ухо (наружу от -hy)
+        # Нижнее ухо
         (hw + overlap, -hy),
-        (hw + overlap, -hy - total_offset),
-        (-hw - overlap, -hy - total_offset),
+        (hw + overlap, -hy - total_offset_y),
+        (-hw - overlap, -hy - total_offset_y),
         (-hw - overlap, -hy),
         
-        # Левый вертикальный борт
+        # Левое ухо (вертикальное, стенка 45 мм + сгиб + 50 мм)
         (-hw, -hy),
-        (-hw - wall_total_offset, -hy),
-        (-hw - wall_total_offset, hy),
+        (-hw - total_offset_x, -hy),
+        (-hw - total_offset_x, hy),
         (-hw, hy)
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
     # 2. Двойные линии сгиба / биговки (Желтый - Цвет 2)
     folds = [
-        # Верхние сгибы у основания дна (двойные: по краю hy и на 9 мм наружу)
+        # Верхние сгибы у основания дна (двойные)
         [(-hw - overlap, hy), (hw + overlap, hy)],
         [(-hw - overlap, hy + fold_gap), (hw + overlap, hy + fold_gap)],
-        
-        # Верхние сгибы перед дополнительным ухом (двойные: на конце стенки 61 мм и еще +9 мм наружу)
-        [(-hw - overlap, hy + wall_total_offset), (hw + overlap, hy + wall_total_offset)],
-        [(-hw - overlap, hy + wall_total_offset + fold_gap), (hw + overlap, hy + wall_total_offset + fold_gap)],
+        # Верхние сгибы перед ухом (двойные на границе wall_total_offset_y)
+        [(-hw - overlap, hy + wall_total_offset_y), (hw + overlap, hy + wall_total_offset_y)],
+        [(-hw - overlap, hy + wall_total_offset_y + fold_gap), (hw + overlap, hy + wall_total_offset_y + fold_gap)],
         
         # Нижние сгибы у основания дна (двойные)
         [(-hw - overlap, -hy), (hw + overlap, -hy)],
         [(-hw - overlap, -hy - fold_gap), (hw + overlap, -hy - fold_gap)],
+        # Нижние сгибы перед ухом (двойные)
+        [(-hw - overlap, -hy - wall_total_offset_y), (hw + overlap, -hy - wall_total_offset_y)],
+        [(-hw - overlap, -hy - wall_total_offset_y - fold_gap), (hw + overlap, -hy - wall_total_offset_y - fold_gap)],
         
-        # Нижние сгибы перед дополнительным ухом (двойные)
-        [(-hw - overlap, -hy - wall_total_offset), (hw + overlap, -hy - wall_total_offset)],
-        [(-hw - overlap, -hy - wall_total_offset - fold_gap), (hw + overlap, -hy - wall_total_offset - fold_gap)],
-        
-        # Правые сгибы (вертикальные)
+        # Правые сгибы у основания дна (двойные)
         [(hw, -hy), (hw, hy)],
         [(hw + fold_gap, -hy), (hw + fold_gap, hy)],
+        # Правые сгибы перед ухом 50мм (двойные на границе wall_total_offset_x)
+        [(hw + wall_total_offset_x, -hy), (hw + wall_total_offset_x, hy)],
+        [(hw + wall_total_offset_x + fold_gap, -hy), (hw + wall_total_offset_x + fold_gap, hy)],
         
-        # Левые сгибы (вертикальные)
+        # Левые сгибы у основания дна (двойные)
         [(-hw, -hy), (-hw, hy)],
-        [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)]
+        [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)],
+        # Левые сгибы перед ухом 50мм (двойные)
+        [(-hw - wall_total_offset_x, -hy), (-hw - wall_total_offset_x, hy)],
+        [(-hw - wall_total_offset_x - fold_gap, -hy), (-hw - wall_total_offset_x - fold_gap, hy)]
     ]
     
     for fold in folds:
