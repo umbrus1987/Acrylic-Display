@@ -364,7 +364,7 @@ if st.session_state.get('name_plate_val', False):
 st.divider()
 st.subheader("Cardboard Box (Cross Net)")
     
-    if st.button("Generate Cardboard Box"):
+if st.button("Generate Cardboard Box"):
         # Передаем только Ширину и Глубину (высота фиксирована 45мм внутри функции)
         st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y)
         st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}.dxf"
