@@ -29,7 +29,6 @@ def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_
         msp.add_circle((start_x + width/2, start_y + height - 6), radius=r)
         
         # Убираем нижнее центральное отверстие, если вы его там не хотите
-        # Если оно нужно ТОЛЬКО на основании (Base/Detail 3), оставьте проверку:
         if is_bottom_part: 
             msp.add_circle((start_x + width/2, start_y + bottom_offset), radius=r)
             
@@ -96,9 +95,7 @@ def draw_detail_3(msp, start_x, start_y, width, height, thickness):
     add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, True, bottom_offset=6.0)
 
 def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font):
-    # Инициализируем pts в самом начале, чтобы избежать UnboundLocalError
     pts = []
-    
     r, h = radius, height
     hw_t, hw_b = w_top / 2, w_bot / 2
     
@@ -109,16 +106,13 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
             arc_pts.append((cx + radius * math.cos(angle), cy + radius * math.sin(angle)))
         return arc_pts
     
-    # Добавляем дуги по углам в список pts
     pts.extend(get_arc_points(center_x + hw_t - r, center_y + h/2 - r, 0, 90, r))
     pts.extend(get_arc_points(center_x - hw_t + r, center_y + h/2 - r, 90, 180, r))
     pts.extend(get_arc_points(center_x - hw_b + r, center_y - h/2 + r, 180, 270, r))
     pts.extend(get_arc_points(center_x + hw_b - r, center_y - h/2 + r, 270, 360, r))
     
-    # Рисуем контур трапеции (цвет 7 - черный)
     msp.add_lwpolyline(pts, close=True, dxfattribs={'color': 7})
     
-    # ВЕКТОРИЗАЦИЯ ТЕКСТА
     if text:
         font_map = {"STANDARD": "sans-serif", "TXT": "monospace", "ROMANS": "serif", "ITALIC": "serif"}
         family = font_map.get(font, "sans-serif")
@@ -130,19 +124,17 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
         dx = -(bbox.x0 + bbox.x1) / 2 + center_x
         dy = -(bbox.y0 + bbox.y1) / 2 + center_y
         
-        # Рисуем буквы (цвет 92 - зеленый для LightBurn C04)
         for path_data in tp.to_polygons():
             text_pts = [(p[0] + dx, p[1] + dy) for p in path_data]
             msp.add_lwpolyline(text_pts, close=True, dxfattribs={'color': 92})
 
 def show_preview(w_top, w_bot, height, text, font_name):
-    plt.close('all') # Очистка перед отрисовкой
+    plt.close('all')
     fig, ax = plt.subplots(figsize=(5, 1.5))
     pts = [(-w_top/2, height/2), (w_top/2, height/2), (w_bot/2, -height/2), (-w_bot/2, -height/2), (-w_top/2, height/2)]
     x, y = zip(*pts)
     ax.plot(x, y, 'g-')
     
-    # Сопоставляем имена шрифтов AutoCAD с системными шрифтами
     font_map = {
         "STANDARD": "sans-serif",
         "TXT": "monospace",
@@ -173,35 +165,36 @@ def get_dxf_bytes(w1, y2, z, thickness):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
-def get_base_dxf_bytes(w, y, include_name_plate):
+def get_base_dxf_bytes(w, y, include_name_plate, thickness):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
     
+    # Масштабируем оффсеты базы пропорционально толщине материала
+    scale = thickness / 3.0
+    
     # 1. Синий контур (Color 5)
-    w1, h1 = w + 2, y + 2
+    w1, h1 = w + (2.0 * scale), y + (2.0 * scale)
     hw1, hh1 = w1 / 2, h1 / 2
     msp.add_lwpolyline([(-hw1, -hh1), (hw1, -hh1), (hw1, hh1), (-hw1, hh1)], close=True, dxfattribs={'color': 5})
     
     # 2. Красный контур (Color 1)
-    w2, h2 = w1 + 20, h1 + 20
+    w2, h2 = w1 + (20.0 * scale), h1 + (20.0 * scale)
     hw2, hh2 = w2 / 2, h2 / 2
     red_bottom_y = -hh2 
     msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
     
     # 3. Зеленая линия (рисуем ТОЛЬКО если включен UI)
     if include_name_plate:
-        # Фиксированная ширина 90 мм для горизонтального отрезка
-        fixed_line_w = 90.0 
+        fixed_line_w = 90.0 * scale
         half_line_w = fixed_line_w / 2
-        bevel = 7 # Размер скоса
+        bevel = int(7 * scale)
         
-        # Линия привязана к red_bottom_y (нижняя красная линия)
         pts_green = [
-            (-half_line_w - bevel, red_bottom_y - bevel), # Ушко вниз
-            (-half_line_w, red_bottom_y),                # Левый край горизонтали
-            (half_line_w, red_bottom_y),                 # Правый край горизонтали
-            (half_line_w + bevel, red_bottom_y - bevel)  # Ушко вниз
+            (-half_line_w - bevel, red_bottom_y - bevel), 
+            (-half_line_w, red_bottom_y),                
+            (half_line_w, red_bottom_y),                 
+            (half_line_w + bevel, red_bottom_y - bevel)  
         ]
         msp.add_lwpolyline(pts_green, close=False, dxfattribs={'color': 3})
 
@@ -214,58 +207,44 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     doc.units = units.MM
     msp = doc.modelspace()
     
-    # 1. Отсекаем наименьший параметр, оставляя два наибольших для развёртки
     dimensions = sorted([w, y, h])
-    # Самый маленький элемент (dimensions[0]) не участвует, берем два больших:
     dim1, dim2 = dimensions[1], dimensions[2]
     
-    # Теперь dim1 и dim2 — это два наибольших значения (например, ширина и глубина, либо глубина и высота и т.д.)
-    # Привязываем их к базовым размерам дна с учетом оффсета 27 мм
     base_w = dim1 + 27.0
     base_y = dim2 + 27.0
     
     hw, hy = base_w / 2, base_y / 2
-    
-    # Общий максимальный размер среди задействованных для пропорций ушей
     max_dim = max(dim1, dim2)
-    
     fold_gap = 9.0
     
-    # 2. Горизонтальные уши (верх/низ)
     wall_height_y = 45.0 + 7.0 
     wall_total_offset_y = wall_height_y + fold_gap 
     extra_flap_y = max_dim / 2.0 
     total_offset_y = wall_total_offset_y + fold_gap + extra_flap_y
     
-    # 3. Вертикальные уши (лево/право)
     wall_height_x = 45.0 
     wall_total_offset_x = wall_height_x + fold_gap 
     extra_flap_x = 50.0 
     total_offset_x = wall_total_offset_x + fold_gap + extra_flap_x
     
-    overlap = 9.0 # Нахлёст по углам
+    overlap = 9.0 
     
-    # 4. Внешний контур реза (Красный - Цвет 1)
     cross_pts = [
-        # Верхнее ухо
         (-hw - overlap, hy),
         (-hw - overlap, hy + total_offset_y),
         (hw + overlap, hy + total_offset_y),
         (hw + overlap, hy),
         
-        # Правое ухо (вертикальное)
         (hw, hy),
         (hw + total_offset_x, hy),
         (hw + total_offset_x, -hy),
         (hw, -hy),
         
-        # Нижнее ухо
         (hw + overlap, -hy),
         (hw + overlap, -hy - total_offset_y),
         (-hw - overlap, -hy - total_offset_y),
         (-hw - overlap, -hy),
         
-        # Левое ухо (вертикальное)
         (-hw, -hy),
         (-hw - total_offset_x, -hy),
         (-hw - total_offset_x, hy),
@@ -273,33 +252,24 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
-    # 5. Двойные линии сгиба / биговки (Желтый - Цвет 2)
     folds = [
-        # Верхние сгибы у основания дна (двойные)
         [(-hw - overlap, hy), (hw + overlap, hy)],
         [(-hw - overlap, hy + fold_gap), (hw + overlap, hy + fold_gap)],
-        # Верхние сгибы перед ухом
         [(-hw - overlap, hy + wall_total_offset_y), (hw + overlap, hy + wall_total_offset_y)],
         [(-hw - overlap, hy + wall_total_offset_y + fold_gap), (hw + overlap, hy + wall_total_offset_y + fold_gap)],
         
-        # Нижние сгибы у основания дна (двойные)
         [(-hw - overlap, -hy), (hw + overlap, -hy)],
         [(-hw - overlap, -hy - fold_gap), (hw + overlap, -hy - fold_gap)],
-        # Нижние сгибы перед ухом
         [(-hw - overlap, -hy - wall_total_offset_y), (hw + overlap, -hy - wall_total_offset_y)],
         [(-hw - overlap, -hy - wall_total_offset_y - fold_gap), (hw + overlap, -hy - wall_total_offset_y - fold_gap)],
         
-        # Правые сгибы у основания дна (двойные)
         [(hw, -hy), (hw, hy)],
         [(hw + fold_gap, -hy), (hw + fold_gap, hy)],
-        # Правые сгибы перед ухом (двойные)
         [(hw + wall_total_offset_x, -hy), (hw + wall_total_offset_x, hy)],
         [(hw + wall_total_offset_x + fold_gap, -hy), (hw + wall_total_offset_x + fold_gap, hy)],
         
-        # Левые сгибы у основания дна (двойные)
         [(-hw, -hy), (-hw, hy)],
         [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)],
-        # Левые сгибы перед ухом (двойные)
         [(-hw - wall_total_offset_x, -hy), (-hw - wall_total_offset_x, hy)],
         [(-hw - wall_total_offset_x - fold_gap, -hy), (-hw - wall_total_offset_x - fold_gap, hy)]
     ]
@@ -315,7 +285,6 @@ def get_cardboard_box_dxf_bytes(w, y, h):
 st.title("Acrylic Display Generator")
 st.markdown("""
     <style>
-    /* Стили только для кнопок скачивания (Download) */
     div.stDownloadButton > button {
         background-color: #FF4B4B !important;
         color: white !important;
@@ -329,39 +298,26 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Переключатель единиц измерения
-unit_system = st.radio("Единицы измерения", ["мм", "дюймы"], horizontal=True)
-
-# Коэффициент пересчета: если выбраны дюймы, умножаем на 25.4 для получения мм
-scale_factor = 25.4 if unit_system == "дюймы" else 1.0
+# Выбор толщины материала
+thickness = st.radio("Толщина материала", [3.0, 4.0], format_func=lambda x: f"{int(x)} мм", horizontal=True)
 
 col1, col2 = st.columns([1, 1])
 with col1:
     st.image("Picture.png", use_container_width=True)
 with col2:
-    # Ввод размеров с учетом выбранных единиц
-    if unit_system == "мм":
-        inp_w = st.number_input("Ширина (X)", 50, 800, 150)
-        inp_y = st.number_input("Глубина (Y)", 50, 800, 100)
-        inp_z = st.number_input("Высота (Z)", 50, 800, 100)
-    else:
-        # Для дюймов делаем шаг удобнее, например, с точностью до десятых
-        inp_w = st.number_input("Ширина (X, дюймы)", 2.0, 31.5, 6.0, step=0.5)
-        inp_y = st.number_input("Глубина (Y, дюймы)", 2.0, 31.5, 4.0, step=0.5)
-        inp_z = st.number_input("Высота (Z, дюймы)", 2.0, 31.5, 4.0, step=0.5)
+    # Ввод внутренних размеров продукта
+    inp_w = st.number_input("Внутренняя ширина (X)", 50, 800, 60)
+    inp_y = st.number_input("Внутренняя глубина (Y)", 50, 800, 60)
+    inp_z = st.number_input("Внутренняя высота (Z)", 50, 800, 80)
 
-   # Пересчитываем введенные значения (внутренние размеры) во внешние размеры
-    # Ширина и глубина увеличиваются на 6 мм, высота — на 3 мм
-    raw_w = inp_w * scale_factor
-    raw_y = inp_y * scale_factor
-    raw_z = inp_z * scale_factor
-
-    width_x = raw_w + 6.0
-    depth_y = raw_y + 6.0
-    height_z = raw_z + 3.0
+    # Конвертируем внутренние размеры во внешние на основе выбранной толщины
+    # Ширина и глубина увеличиваются на 2 * thickness, высота — на thickness
+    width_x = inp_w + (2 * thickness)
+    depth_y = inp_y + (2 * thickness)
+    height_z = inp_z + thickness
 
     if st.button("Generate Main"):
-        st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, 3.0)
+        st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, thickness)
         st.session_state['main_file_name'] = f"Main_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}.dxf"
     
     if 'dxf_data' in st.session_state:
@@ -374,7 +330,7 @@ with col2:
     st.checkbox("Name Plate", key='name_plate_val')
     if st.button("Generate Base"):
         include_plate = st.session_state.get('name_plate_val', False)
-        st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, include_plate)
+        st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, include_plate, thickness)
         st.session_state['base_file_name'] = f"Base_{width_x:.1f}x{depth_y:.1f}.dxf"
     
     if 'base_dxf' in st.session_state:
@@ -412,7 +368,6 @@ st.divider()
 st.subheader("Cardboard Box (Cross Net)")
     
 if st.button("Generate Cardboard Box"):
-        # Передаем ширину, глубину и высоту (height_z), функция сама отсечет наименьшее
         st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z)
         st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}.dxf"
     
@@ -422,4 +377,3 @@ if 'box_dxf' in st.session_state:
             data=st.session_state['box_dxf'], 
             file_name=st.session_state.get('box_file_name', 'Box.dxf')
         )
-        
