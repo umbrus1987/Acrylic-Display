@@ -14,11 +14,12 @@ from matplotlib.font_manager import FontProperties
 # --- Вспомогательные функции ---
 def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part, thickness=3.0):
     r = 1.25
-    # Динамический отступ под отверстия в зависимости от толщины материала
-    corner_offset = 6.0 if thickness == 3.0 else 7.5
-    bottom_offset = 8.0 if thickness == 3.0 else 9.5
+    # Отверстия: 3 мм -> углы 6.0 / низ 8.0 (низ детали 6.0)
+    # Отверстия: 4 мм -> углы 6.5 / низ 8.5 (низ детали 6.5)
+    corner_offset = 6.0 if thickness == 3.0 else 6.5
+    bottom_offset = 8.0 if thickness == 3.0 else 8.5
     if is_bottom_part:
-        bottom_offset = 6.0 if thickness == 3.0 else 7.5
+        bottom_offset = 6.0 if thickness == 3.0 else 6.5
 
     # Основные 4 угла
     holes = [
@@ -31,10 +32,7 @@ def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_
         msp.add_circle(h, radius=r)
         
     if is_wide:
-        # Оставляем ТОЛЬКО верхнее центральное отверстие для широких деталей
         msp.add_circle((start_x + width/2, start_y + height - corner_offset), radius=r)
-        
-        # Убираем нижнее центральное отверстие, если вы его там не хотите
         if is_bottom_part: 
             msp.add_circle((start_x + width/2, start_y + bottom_offset), radius=r)
             
@@ -55,29 +53,20 @@ def draw_detail_1(msp, start_x, start_y, width, height, thickness):
     pts = [
         (sx, sy), 
         (sx + w_base, sy), 
-        
-        # Правый вертикальный паз:
         (sx + w_base, sy + h3 + shift_bottom),
         (sx + w_base + t, sy + h3 + shift_bottom),
         (sx + w_base + t, sy + 2*h3 + shift_top),
         (sx + w_base, sy + 2*h3 + shift_top),
-        
         (sx + w_base, sy + h_base), 
-        
-        # Верхний горизонтальный шип:
         (sx + 2*w3 + ext, sy + h_base),      
         (sx + 2*w3 + ext, sy + h_base + t),  
         (sx + w3 - ext, sy + h_base + t),    
         (sx + w3 - ext, sy + h_base),        
-        
         (sx, sy + h_base), 
-        
-        # Левый вертикальный паз:
         (sx, sy + 2*h3 + shift_top),
         (sx - t, sy + 2*h3 + shift_top),
         (sx - t, sy + h3 + shift_bottom),
         (sx, sy + h3 + shift_bottom), 
-        
         (sx, sy)
     ]
     msp.add_lwpolyline(pts, close=True)
@@ -95,7 +84,6 @@ def draw_detail_3(msp, start_x, start_y, width, height, thickness):
     w3, h3 = width / 3, height / 3
     pts = [(start_x + w3, start_y), (start_x + w3, start_y + t), (start_x + 2*w3, start_y + t), (start_x + 2*w3, start_y), (start_x + width, start_y), (start_x + width, start_y + h3), (start_x + width - t, start_y + h3), (start_x + width - t, start_y + 2*h3), (start_x + width, start_y + 2*h3), (start_x + width, start_y + height), (start_x + 2*w3, start_y + height), (start_x + 2*w3, start_y + height - t), (start_x + w3, start_y + height - t), (start_x + w3, start_y + height), (start_x, start_y + height), (start_x, start_y + 2*h3), (start_x + t, start_y + 2*h3), (start_x + t, start_y + h3), (start_x, start_y + h3), (start_x, start_y)]
     msp.add_lwpolyline(pts, close=True)
-    
     add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, True, thickness=thickness)
 
 def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font):
@@ -174,9 +162,9 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness):
     doc.units = units.MM
     msp = doc.modelspace()
     
-    # Точный расчет базы с учетом толщины материала (для 3мм прибавка +2 и +20, для 4мм пропорционально шире)
-    extra_blue = 2.0 if thickness == 3.0 else 2.6
-    extra_red = 20.0 if thickness == 3.0 else 26.6
+    # Жестко фиксированные прибавки 2 и 20 для базы вне зависимости от толщины
+    extra_blue = 2.0
+    extra_red = 20.0
     
     # 1. Синий контур (Color 5)
     w1, h1 = w + extra_blue, y + extra_blue
@@ -277,7 +265,7 @@ def get_cardboard_box_dxf_bytes(w, y, h):
         [(-hw, -hy), (-hw, hy)],
         [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)],
         [(-hw - wall_total_offset_x, -hy), (-hw - wall_total_offset_x, hy)],
-        [(-hw - wall_total_offset_x + fold_gap, -hy), (-hw - wall_total_offset_x + fold_gap, hy)] # Исправление опечатки знака в старом списке сгиба
+        [(-hw - wall_total_offset_x + fold_gap, -hy), (-hw - wall_total_offset_x + fold_gap, hy)]
     ]
     
     for fold in folds:
