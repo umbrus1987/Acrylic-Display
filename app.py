@@ -350,10 +350,15 @@ with col2:
         inp_y = st.number_input("Глубина (Y, дюймы)", 2.0, 31.5, 4.0, step=0.5)
         inp_z = st.number_input("Высота (Z, дюймы)", 2.0, 31.5, 4.0, step=0.5)
 
-    # Пересчитываем введенные значения в миллиметры для функций генерации
-    width_x = inp_w * scale_factor
-    depth_y = inp_y * scale_factor
-    height_z = inp_z * scale_factor
+   # Пересчитываем введенные значения (внутренние размеры) во внешние размеры
+    # Ширина и глубина увеличиваются на 6 мм, высота — на 3 мм
+    raw_w = inp_w * scale_factor
+    raw_y = inp_y * scale_factor
+    raw_z = inp_z * scale_factor
+
+    width_x = raw_w + 6.0
+    depth_y = raw_y + 6.0
+    height_z = raw_z + 3.0
 
     if st.button("Generate Main"):
         st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, 3.0)
