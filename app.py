@@ -14,12 +14,11 @@ from matplotlib.font_manager import FontProperties
 # --- Вспомогательные функции ---
 def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part, thickness=3.0):
     r = 1.25
-    # Отверстия: 3 мм -> углы 6.0 / низ 8.0 (низ детали 6.0)
-    # Отверстия: 4 мм -> углы 6.5 / низ 8.5 (низ детали 6.5)
-    corner_offset = 6.0 if thickness == 3.0 else 6.5
-    bottom_offset = 8.0 if thickness == 3.0 else 8.5
-    if is_bottom_part:
-        bottom_offset = 6.0 if thickness == 3.0 else 6.5
+    # Угловой отступ: 6.0 для 3мм, 7.0 для 4мм
+    corner_offset = 6.0 if thickness == 3.0 else 7.0
+    
+    # Нижний отступ одинаковый для 3мм и 4мм
+    bottom_offset = 6.0 if is_bottom_part else 8.0
 
     # Основные 4 угла
     holes = [
@@ -162,7 +161,6 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness):
     doc.units = units.MM
     msp = doc.modelspace()
     
-    # Жестко фиксированные прибавки 2 и 20 для базы вне зависимости от толщины
     extra_blue = 2.0
     extra_red = 20.0
     
