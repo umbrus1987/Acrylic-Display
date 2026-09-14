@@ -12,29 +12,35 @@ from matplotlib.textpath import TextPath
 from matplotlib.font_manager import FontProperties
 
 # --- Вспомогательные функции ---
-def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part, bottom_offset=8.0):
+def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part, thickness=3.0):
     r = 1.25
+    # Динамический отступ под отверстия в зависимости от толщины материала
+    corner_offset = 6.0 if thickness == 3.0 else 7.5
+    bottom_offset = 8.0 if thickness == 3.0 else 9.5
+    if is_bottom_part:
+        bottom_offset = 6.0 if thickness == 3.0 else 7.5
+
     # Основные 4 угла
     holes = [
-        (start_x + 6, start_y + bottom_offset), 
-        (start_x + width - 6, start_y + bottom_offset), 
-        (start_x + width - 6, start_y + height - 6), 
-        (start_x + 6, start_y + height - 6)
+        (start_x + corner_offset, start_y + bottom_offset), 
+        (start_x + width - corner_offset, start_y + bottom_offset), 
+        (start_x + width - corner_offset, start_y + height - corner_offset), 
+        (start_x + corner_offset, start_y + height - corner_offset)
     ]
     for h in holes: 
         msp.add_circle(h, radius=r)
         
     if is_wide:
         # Оставляем ТОЛЬКО верхнее центральное отверстие для широких деталей
-        msp.add_circle((start_x + width/2, start_y + height - 6), radius=r)
+        msp.add_circle((start_x + width/2, start_y + height - corner_offset), radius=r)
         
         # Убираем нижнее центральное отверстие, если вы его там не хотите
         if is_bottom_part: 
             msp.add_circle((start_x + width/2, start_y + bottom_offset), radius=r)
             
     if is_high:
-        msp.add_circle((start_x + 6, start_y + height/2), radius=r)
-        msp.add_circle((start_x + width - 6, start_y + height/2), radius=r)
+        msp.add_circle((start_x + corner_offset, start_y + height/2), radius=r)
+        msp.add_circle((start_x + width - corner_offset, start_y + height/2), radius=r)
 
 def draw_detail_1(msp, start_x, start_y, width, height, thickness):
     t = thickness
@@ -42,7 +48,6 @@ def draw_detail_1(msp, start_x, start_y, width, height, thickness):
     w3, h3 = w_base / 3, h_base / 3
     sx, sy = start_x + t, start_y
     
-    # Сдвиг низа паза на +1 мм, а верха на +2 мм (удлинение паза на 1 мм)
     shift_bottom = 1.0
     shift_top = 2.0
     ext = 1.0 
@@ -59,7 +64,7 @@ def draw_detail_1(msp, start_x, start_y, width, height, thickness):
         
         (sx + w_base, sy + h_base), 
         
-        # Верхний горизонтальный шип (сохранен с ext=1.0):
+        # Верхний горизонтальный шип:
         (sx + 2*w3 + ext, sy + h_base),      
         (sx + 2*w3 + ext, sy + h_base + t),  
         (sx + w3 - ext, sy + h_base + t),    
@@ -76,14 +81,14 @@ def draw_detail_1(msp, start_x, start_y, width, height, thickness):
         (sx, sy)
     ]
     msp.add_lwpolyline(pts, close=True)
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False, bottom_offset=8.0)
+    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False, thickness=thickness)
 
 def draw_detail_2(msp, start_x, start_y, width, height, thickness):
     t = thickness
     h_base = height - t
     pts = [(start_x, start_y), (start_x + width, start_y), (start_x + width, start_y + height/3), (start_x + width - t, start_y + height/3), (start_x + width - t, start_y + 2*height/3), (start_x + width, start_y + 2*height/3), (start_x + width, start_y + h_base), (start_x + 2*width/3, start_y + h_base), (start_x + 2*width/3, start_y + h_base + t), (start_x + width/3, start_y + h_base + t), (start_x + width/3, start_y + h_base), (start_x, start_y + h_base), (start_x, start_y + 2*height/3), (start_x + t, start_y + 2*height/3), (start_x + t, start_y + height/3), (start_x, start_y + height/3), (start_x, start_y)]
     msp.add_lwpolyline(pts, close=True)
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False, bottom_offset=8.0)
+    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False, thickness=thickness)
 
 def draw_detail_3(msp, start_x, start_y, width, height, thickness):
     t = thickness
@@ -91,8 +96,7 @@ def draw_detail_3(msp, start_x, start_y, width, height, thickness):
     pts = [(start_x + w3, start_y), (start_x + w3, start_y + t), (start_x + 2*w3, start_y + t), (start_x + 2*w3, start_y), (start_x + width, start_y), (start_x + width, start_y + h3), (start_x + width - t, start_y + h3), (start_x + width - t, start_y + 2*h3), (start_x + width, start_y + 2*h3), (start_x + width, start_y + height), (start_x + 2*w3, start_y + height), (start_x + 2*w3, start_y + height - t), (start_x + w3, start_y + height - t), (start_x + w3, start_y + height), (start_x, start_y + height), (start_x, start_y + 2*h3), (start_x + t, start_y + 2*h3), (start_x + t, start_y + h3), (start_x, start_y + h3), (start_x, start_y)]
     msp.add_lwpolyline(pts, close=True)
     
-    # Изменяем вызов, передавая bottom_offset=6.0 вместо 8.0
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, True, bottom_offset=6.0)
+    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, True, thickness=thickness)
 
 def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font):
     pts = []
@@ -170,25 +174,27 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness):
     doc.units = units.MM
     msp = doc.modelspace()
     
-    # Масштабируем оффсеты базы пропорционально толщине материала
-    scale = thickness / 3.0
+    # Точный расчет базы с учетом толщины материала (для 3мм прибавка +2 и +20, для 4мм пропорционально шире)
+    extra_blue = 2.0 if thickness == 3.0 else 2.6
+    extra_red = 20.0 if thickness == 3.0 else 26.6
     
     # 1. Синий контур (Color 5)
-    w1, h1 = w + (2.0 * scale), y + (2.0 * scale)
+    w1, h1 = w + extra_blue, y + extra_blue
     hw1, hh1 = w1 / 2, h1 / 2
     msp.add_lwpolyline([(-hw1, -hh1), (hw1, -hh1), (hw1, hh1), (-hw1, hh1)], close=True, dxfattribs={'color': 5})
     
     # 2. Красный контур (Color 1)
-    w2, h2 = w1 + (20.0 * scale), h1 + (20.0 * scale)
+    w2, h2 = w1 + extra_red, h1 + extra_red
     hw2, hh2 = w2 / 2, h2 / 2
     red_bottom_y = -hh2 
     msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
     
-    # 3. Зеленая линия (рисуем ТОЛЬКО если включен UI)
+    # 3. Зеленая линия
     if include_name_plate:
-        fixed_line_w = 90.0 * scale
+        fixed_link_scale = thickness / 3.0
+        fixed_line_w = 90.0 * fixed_link_scale
         half_line_w = fixed_line_w / 2
-        bevel = int(7 * scale)
+        bevel = int(7 * fixed_link_scale)
         
         pts_green = [
             (-half_line_w - bevel, red_bottom_y - bevel), 
@@ -271,7 +277,7 @@ def get_cardboard_box_dxf_bytes(w, y, h):
         [(-hw, -hy), (-hw, hy)],
         [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)],
         [(-hw - wall_total_offset_x, -hy), (-hw - wall_total_offset_x, hy)],
-        [(-hw - wall_total_offset_x - fold_gap, -hy), (-hw - wall_total_offset_x - fold_gap, hy)]
+        [(-hw - wall_total_offset_x + fold_gap, -hy), (-hw - wall_total_offset_x + fold_gap, hy)] # Исправление опечатки знака в старом списке сгиба
     ]
     
     for fold in folds:
@@ -298,20 +304,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Выбор толщины материала
 thickness = st.radio("Толщина материала", [3.0, 4.0], format_func=lambda x: f"{int(x)} мм", horizontal=True)
 
 col1, col2 = st.columns([1, 1])
 with col1:
     st.image("Picture.png", use_container_width=True)
 with col2:
-    # Ввод внутренних размеров продукта
     inp_w = st.number_input("Внутренняя ширина (X)", 50, 800, 60)
     inp_y = st.number_input("Внутренняя глубина (Y)", 50, 800, 60)
     inp_z = st.number_input("Внутренняя высота (Z)", 50, 800, 80)
 
-    # Конвертируем внутренние размеры во внешние на основе выбранной толщины
-    # Ширина и глубина увеличиваются на 2 * thickness, высота — на thickness
     width_x = inp_w + (2 * thickness)
     depth_y = inp_y + (2 * thickness)
     height_z = inp_z + thickness
