@@ -39,7 +39,7 @@ def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_
         msp.add_circle((start_x + corner_offset, start_y + height/2), radius=r)
         msp.add_circle((start_x + width - corner_offset, start_y + height/2), radius=r)
 
-def draw_detail_1(msp, start_x, start_y, width, height, thickness):
+def draw_detail_1(msp, start_x, start_y, width, height, thickness, is_wide, is_high):
     t = thickness
     w_base, h_base = width - 2*t, height - t
     w3, h3 = w_base / 3, h_base / 3
@@ -69,21 +69,41 @@ def draw_detail_1(msp, start_x, start_y, width, height, thickness):
         (sx, sy)
     ]
     msp.add_lwpolyline(pts, close=True)
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False, thickness=thickness)
+    add_holes(msp, start_x, start_y, width, height, is_wide, is_high, False, thickness=thickness)
 
-def draw_detail_2(msp, start_x, start_y, width, height, thickness):
+def draw_detail_2(msp, start_x, start_y, width, height, thickness, is_wide, is_high):
     t = thickness
     h_base = height - t
-    pts = [(start_x, start_y), (start_x + width, start_y), (start_x + width, start_y + height/3), (start_x + width - t, start_y + height/3), (start_x + width - t, start_y + 2*height/3), (start_x + width, start_y + 2*height/3), (start_x + width, start_y + h_base), (start_x + 2*width/3, start_y + h_base), (start_x + 2*width/3, start_y + h_base + t), (start_x + width/3, start_y + h_base + t), (start_x + width/3, start_y + h_base), (start_x, start_y + h_base), (start_x, start_y + 2*height/3), (start_x + t, start_y + 2*height/3), (start_x + t, start_y + height/3), (start_x, start_y + height/3), (start_x, start_y)]
+    pts = [
+        (start_x, start_y), (start_x + width, start_y), 
+        (start_x + width, start_y + height/3), (start_x + width - t, start_y + height/3), 
+        (start_x + width - t, start_y + 2*height/3), (start_x + width, start_y + 2*height/3), 
+        (start_x + width, start_y + h_base), (start_x + 2*width/3, start_y + h_base), 
+        (start_x + 2*width/3, start_y + h_base + t), (start_x + width/3, start_y + h_base + t), 
+        (start_x + width/3, start_y + h_base), (start_x, start_y + h_base), 
+        (start_x, start_y + 2*height/3), (start_x + t, start_y + 2*height/3), 
+        (start_x + t, start_y + height/3), (start_x, start_y + height/3), (start_x, start_y)
+    ]
     msp.add_lwpolyline(pts, close=True)
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, False, thickness=thickness)
+    add_holes(msp, start_x, start_y, width, height, is_wide, is_high, False, thickness=thickness)
 
-def draw_detail_3(msp, start_x, start_y, width, height, thickness):
+def draw_detail_3(msp, start_x, start_y, width, height, thickness, is_wide, is_high):
     t = thickness
     w3, h3 = width / 3, height / 3
-    pts = [(start_x + w3, start_y), (start_x + w3, start_y + t), (start_x + 2*w3, start_y + t), (start_x + 2*w3, start_y), (start_x + width, start_y), (start_x + width, start_y + h3), (start_x + width - t, start_y + h3), (start_x + width - t, start_y + 2*h3), (start_x + width, start_y + 2*h3), (start_x + width, start_y + height), (start_x + 2*w3, start_y + height), (start_x + 2*w3, start_y + height - t), (start_x + w3, start_y + height - t), (start_x + w3, start_y + height), (start_x, start_y + height), (start_x, start_y + 2*h3), (start_x + t, start_y + 2*h3), (start_x + t, start_y + h3), (start_x, start_y + h3), (start_x, start_y)]
+    pts = [
+        (start_x + w3, start_y), (start_x + w3, start_y + t), 
+        (start_x + 2*w3, start_y + t), (start_x + 2*w3, start_y), 
+        (start_x + width, start_y), (start_x + width, start_y + h3), 
+        (start_x + width - t, start_y + h3), (start_x + width - t, start_y + 2*h3), 
+        (start_x + width, start_y + 2*h3), (start_x + width, start_y + height), 
+        (start_x + 2*w3, start_y + height), (start_x + 2*w3, start_y + height - t), 
+        (start_x + w3, start_y + height - t), (start_x + w3, start_y + height), 
+        (start_x, start_y + height), (start_x, start_y + 2*h3), 
+        (start_x + t, start_y + 2*h3), (start_x + t, start_y + h3), 
+        (start_x, start_y + h3), (start_x, start_y)
+    ]
     msp.add_lwpolyline(pts, close=True)
-    add_holes(msp, start_x, start_y, width, height, width >= 150, height >= 150, True, thickness=thickness)
+    add_holes(msp, start_x, start_y, width, height, is_wide, is_high, True, thickness=thickness)
 
 def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font):
     pts = []
@@ -142,16 +162,16 @@ def show_preview(w_top, w_bot, height, text, font_name):
     ax.axis('off')
     st.pyplot(fig)
 
-def get_dxf_bytes(w1, y2, z, thickness):
+def get_dxf_bytes(w1, y2, z, thickness, is_w_large, is_y_large, is_z_large):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
     gap = 3
-    draw_detail_1(msp, 0, 0, w1, z, thickness)
-    draw_detail_1(msp, w1 + gap, 0, w1, z, thickness)
-    draw_detail_2(msp, 0, z + gap, y2, z, thickness)
-    draw_detail_2(msp, y2 + gap, z + gap, y2, z, thickness)
-    draw_detail_3(msp, 0, z + gap + z + gap, w1, y2, thickness)
+    draw_detail_1(msp, 0, 0, w1, z, thickness, is_w_large, is_z_large)
+    draw_detail_1(msp, w1 + gap, 0, w1, z, thickness, is_w_large, is_z_large)
+    draw_detail_2(msp, 0, z + gap, y2, z, thickness, is_y_large, is_z_large)
+    draw_detail_2(msp, y2 + gap, z + gap, y2, z, thickness, is_y_large, is_z_large)
+    draw_detail_3(msp, 0, z + gap + z + gap, w1, y2, thickness, is_w_large, is_y_large)
     stream = io.StringIO()
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
@@ -305,7 +325,11 @@ with col2:
     height_z = inp_z + thickness
 
     if st.button("Generate Main"):
-        st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, thickness)
+        is_w_large = inp_w > 150
+        is_y_large = inp_y > 150
+        is_z_large = inp_z > 150
+        
+        st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, thickness, is_w_large, is_y_large, is_z_large)
         st.session_state['main_file_name'] = f"Main_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}.dxf"
     
     if 'dxf_data' in st.session_state:
