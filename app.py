@@ -222,24 +222,27 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     dimensions = sorted([w, y, h])
     dim1, dim2 = dimensions[1], dimensions[2]
     
-    base_w = dim1 + 27.0
-    base_y = dim2 + 27.0
+    # Большая из двух сторон всегда по X, меньшая по Y
+    dim_x = max(dim1, dim2)
+    dim_y = min(dim1, dim2)
+    
+    base_w = dim_x + 27.0
+    base_y = dim_y + 27.0
     
     hw, hy = base_w / 2, base_y / 2
-    max_dim = max(dim1, dim2)
     fold_gap = 9.0
     
-    wall_height_y = 45.0 + 7.0 
+    wall_height_y = 45.0 + 4.0 
     wall_total_offset_y = wall_height_y + fold_gap 
-    extra_flap_y = max_dim / 2.0 
+    extra_flap_y = dim_x / 2.0 
     total_offset_y = wall_total_offset_y + fold_gap + extra_flap_y
     
     wall_height_x = 45.0 
     wall_total_offset_x = wall_height_x + fold_gap 
-    extra_flap_x = 50.0 
+    extra_flap_x = dim_y / 2.0 
     total_offset_x = wall_total_offset_x + fold_gap + extra_flap_x
     
-    overlap = 9.0 
+    overlap = 7.0 
     
     cross_pts = [
         (-hw - overlap, hy),
