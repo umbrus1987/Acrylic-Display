@@ -226,6 +226,7 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     dim_x = max(dim1, dim2)
     dim_y = min(dim1, dim2)
     
+    # Размеры дна коробки
     base_w = dim_x + 27.0
     base_y = dim_y + 27.0
     
@@ -234,12 +235,15 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     
     wall_height_y = 45.0 + 4.0 
     wall_total_offset_y = wall_height_y + fold_gap 
-    extra_flap_y = dim_x / 2.0 
+    
+    # Клапаны зависят от размеров дна
+    extra_flap_y = base_w / 2.0 
     total_offset_y = wall_total_offset_y + fold_gap + extra_flap_y
     
     wall_height_x = 45.0 
     wall_total_offset_x = wall_height_x + fold_gap 
-    extra_flap_x = dim_y / 2.0 
+    
+    extra_flap_x = base_y / 2.0 
     total_offset_x = wall_total_offset_x + fold_gap + extra_flap_x
     
     overlap = 7.0 
