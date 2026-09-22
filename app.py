@@ -226,12 +226,12 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     wall_h_y = 45.0 + 4.0 
     wall_h_x = 45.0 
     
-    # Полу-клапаны поменяны местами осями
+    # Фиксированная длина ушей (влево и вправо) = 50 мм
+    extra_flap_x = 50.0 
+    total_offset_x = fold_gap + wall_h_x + fold_gap + extra_flap_x
+    
     extra_flap_y = base_y / 2.0 
     total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
-    
-    extra_flap_x = base_w / 2.0 
-    total_offset_x = fold_gap + wall_h_x + fold_gap + extra_flap_x
     
     overlap = 7.0 
     
