@@ -185,7 +185,7 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness):
     w2, h2 = w1 + extra_red, h1 + extra_red
     hw2, hh2 = w2 / 2, h2 / 2
     red_bottom_y = -hh2 
-    msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
+    msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hw2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
     
     if include_name_plate:
         fixed_link_scale = thickness / 3.0
@@ -259,21 +259,28 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
-    # Смещение линий загибов, которые ближе к центру, на 4.5 мм
     offset_val = 4.5
     
     folds = [
-        # Верхний луч (сдвигаем ближнюю линию на 4.5 мм вверх от границы дна hy)
+        # Верхний луч (оставляем ближнюю к центру стенки и ближнюю к клапану)
         [(-hw - overlap, hy + offset_val), (hw + overlap, hy + offset_val)],
+        [(-hw - overlap, hy + wall_total_offset_y), (hw + overlap, hy + wall_total_offset_y)],
+        [(-hw - overlap, hy + wall_total_offset_y + fold_gap), (hw + overlap, hy + wall_total_offset_y + fold_gap)],
         
-        # Нижний луч (сдвигаем ближнюю линию на 4.5 мм вниз от границы дна -hy)
+        # Нижний луч
         [(-hw - overlap, -hy - offset_val), (hw + overlap, -hy - offset_val)],
+        [(-hw - overlap, -hy - wall_total_offset_y), (hw + overlap, -hy - wall_total_offset_y)],
+        [(-hw - overlap, -hy - wall_total_offset_y - fold_gap), (hw + overlap, -hy - wall_total_offset_y - fold_gap)],
         
-        # Правый луч (сдвигаем ближнюю линию на 4.5 мм влево от границы дна hw)
-        [(hw - offset_val, -hy), (hw - offset_val, hy)],
+        # Правый луч (смещаем вертикальные линии ОТ центранаружу: + для правой границы)
+        [(hw + offset_val, -hy), (hw + offset_val, hy)],
+        [(hw + wall_total_offset_x, -hy), (hw + wall_total_offset_x, hy)],
+        [(hw + wall_total_offset_x + fold_gap, -hy), (hw + wall_total_offset_x + fold_gap, hy)],
         
-        # Левый луч (сдвигаем ближнюю линию на 4.5 мм вправо от границы дна -hw)
-        [(-hw + offset_val, -hy), (-hw + offset_val, hy)]
+        # Левый луч (смещаем вертикальные линии ОТ центра наружу: - для левой границы)
+        [(-hw - offset_val, -hy), (-hw - offset_val, hy)],
+        [(-hw - wall_total_offset_x, -hy), (-hw - wall_total_offset_x, hy)],
+        [(-hw - wall_total_offset_x - fold_gap, -hy), (-hw - wall_total_offset_x - fold_gap, hy)]
     ]
     
     for fold in folds:
