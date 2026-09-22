@@ -271,26 +271,47 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
+    # Заменяем двойные линии промежутков на одиночные линии посередине (биговки)
+    mid_y_1 = hy + wall_height_y + fold_gap / 2.0
+    mid_y_2 = hy + wall_total_offset_y + fold_gap / 2.0
+    
+    mid_neg_y_1 = -hy - wall_height_y - fold_gap / 2.0
+    mid_neg_y_2 = -hy - wall_total_offset_y - fold_gap / 2.0
+    
+    mid_x_1 = hw + wall_height_x + fold_gap / 2.0
+    mid_x_2 = hw + wall_total_offset_x + fold_gap / 2.0
+    
+    mid_neg_x_1 = -hw - wall_height_x - fold_gap / 2.0
+    mid_neg_x_2 = -hw - wall_total_offset_x - fold_gap / 2.0
+
     folds = [
+        # Линии сгиба для верхней стенки
         [(-hw - overlap, hy), (hw + overlap, hy)],
-        [(-hw - overlap, hy + fold_gap), (hw + overlap, hy + fold_gap)],
+        [(-hw - overlap, hy + wall_height_y), (hw + overlap, hy + wall_height_y)],
+        [(-hw - overlap, mid_y_1), (hw + overlap, mid_y_1)],
         [(-hw - overlap, hy + wall_total_offset_y), (hw + overlap, hy + wall_total_offset_y)],
-        [(-hw - overlap, hy + wall_total_offset_y + fold_gap), (hw + overlap, hy + wall_total_offset_y + fold_gap)],
+        [(-hw - overlap, mid_y_2), (hw + overlap, mid_y_2)],
         
+        # Линии сгиба для нижней стенки
         [(-hw - overlap, -hy), (hw + overlap, -hy)],
-        [(-hw - overlap, -hy - fold_gap), (hw + overlap, -hy - fold_gap)],
+        [(-hw - overlap, -hy - wall_height_y), (hw + overlap, -hy - wall_height_y)],
+        [(-hw - overlap, mid_neg_y_1), (hw + overlap, mid_neg_y_1)],
         [(-hw - overlap, -hy - wall_total_offset_y), (hw + overlap, -hy - wall_total_offset_y)],
-        [(-hw - overlap, -hy - wall_total_offset_y - fold_gap), (hw + overlap, -hy - wall_total_offset_y - fold_gap)],
+        [(-hw - overlap, mid_neg_y_2), (hw + overlap, mid_neg_y_2)],
         
+        # Линии сгиба для правой стенки
         [(hw, -hy), (hw, hy)],
-        [(hw + fold_gap, -hy), (hw + fold_gap, hy)],
+        [(hw + wall_height_x, -hy), (hw + wall_height_x, hy)],
+        [(mid_x_1, -hy), (mid_x_1, hy)],
         [(hw + wall_total_offset_x, -hy), (hw + wall_total_offset_x, hy)],
-        [(hw + wall_total_offset_x + fold_gap, -hy), (hw + wall_total_offset_x + fold_gap, hy)],
+        [(mid_x_2, -hy), (mid_x_2, hy)],
         
+        # Линии сгиба для левой стенки
         [(-hw, -hy), (-hw, hy)],
-        [(-hw - fold_gap, -hy), (-hw - fold_gap, hy)],
+        [(-hw - wall_height_x, -hy), (-hw - wall_height_x, hy)],
+        [(mid_neg_x_1, -hy), (mid_neg_x_1, hy)],
         [(-hw - wall_total_offset_x, -hy), (-hw - wall_total_offset_x, hy)],
-        [(-hw - wall_total_offset_x + fold_gap, -hy), (-hw - wall_total_offset_x + fold_gap, hy)]
+        [(mid_neg_x_2, -hy), (mid_neg_x_2, hy)]
     ]
     
     for fold in folds:
