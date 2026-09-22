@@ -6,21 +6,15 @@ import io
 import math
 import matplotlib.pyplot as plt
 from ezdxf import units
-from ezdxf.enums import TextEntityAlignment
-import matplotlib.path as mpath
 from matplotlib.textpath import TextPath
 from matplotlib.font_manager import FontProperties
 
 # --- Вспомогательные функции ---
 def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part, thickness=3.0):
     r = 1.25
-    # Угловой отступ: 6.0 для 3мм, 7.0 для 4мм
     corner_offset = 6.0 if thickness == 3.0 else 7.0
-    
-    # Нижний отступ одинаковый для 3мм и 4мм
     bottom_offset = 6.0 if is_bottom_part else 8.0
 
-    # Основные 4 угла
     holes = [
         (start_x + corner_offset, start_y + bottom_offset), 
         (start_x + width - corner_offset, start_y + bottom_offset), 
@@ -184,18 +178,15 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness):
     extra_blue = 2.0
     extra_red = 20.0
     
-    # 1. Синий контур (Color 5)
     w1, h1 = w + extra_blue, y + extra_blue
     hw1, hh1 = w1 / 2, h1 / 2
     msp.add_lwpolyline([(-hw1, -hh1), (hw1, -hh1), (hw1, hh1), (-hw1, hh1)], close=True, dxfattribs={'color': 5})
     
-    # 2. Красный контур (Color 1)
     w2, h2 = w1 + extra_red, h1 + extra_red
     hw2, hh2 = w2 / 2, h2 / 2
     red_bottom_y = -hh2 
     msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
     
-    # 3. Зеленая линия
     if include_name_plate:
         fixed_link_scale = thickness / 3.0
         fixed_line_w = 90.0 * fixed_link_scale
@@ -222,11 +213,9 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     dimensions = sorted([w, y, h])
     dim1, dim2 = dimensions[1], dimensions[2]
     
-    # Большая из двух сторон всегда по X, меньшая по Y
     dim_x = max(dim1, dim2)
     dim_y = min(dim1, dim2)
     
-    # Размеры дна коробки
     base_w = dim_x + 27.0
     base_y = dim_y + 27.0
     
@@ -236,7 +225,6 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     wall_height_y = 45.0 + 4.0 
     wall_total_offset_y = wall_height_y + fold_gap 
     
-    # Клапаны зависят от размеров дна
     extra_flap_y = base_w / 2.0 
     total_offset_y = wall_total_offset_y + fold_gap + extra_flap_y
     
@@ -271,27 +259,21 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
-    # Ровно по 3 чистые линии сгиба на каждый луч (основание стенки, верх стенки, линия клапана)
+    # Смещение линий загибов, которые ближе к центру, на 4.5 мм
+    offset_val = 4.5
+    
     folds = [
-        # Верхний луч
-        [(-hw - overlap, hy), (hw + overlap, hy)],
-        [(-hw - overlap, hy + wall_height_y), (hw + overlap, hy + wall_height_y)],
-        [(-hw - overlap, hy + wall_total_offset_y), (hw + overlap, hy + wall_total_offset_y)],
+        # Верхний луч (сдвигаем ближнюю линию на 4.5 мм вверх от границы дна hy)
+        [(-hw - overlap, hy + offset_val), (hw + overlap, hy + offset_val)],
         
-        # Нижний луч
-        [(-hw - overlap, -hy), (hw + overlap, -hy)],
-        [(-hw - overlap, -hy - wall_height_y), (hw + overlap, -hy - wall_height_y)],
-        [(-hw - overlap, -hy - wall_total_offset_y), (hw + overlap, -hy - wall_total_offset_y)],
+        # Нижний луч (сдвигаем ближнюю линию на 4.5 мм вниз от границы дна -hy)
+        [(-hw - overlap, -hy - offset_val), (hw + overlap, -hy - offset_val)],
         
-        # Правый луч
-        [(hw, -hy), (hw, hy)],
-        [(hw + wall_height_x, -hy), (hw + wall_height_x, hy)],
-        [(hw + wall_total_offset_x, -hy), (hw + wall_total_offset_x, hy)],
+        # Правый луч (сдвигаем ближнюю линию на 4.5 мм влево от границы дна hw)
+        [(hw - offset_val, -hy), (hw - offset_val, hy)],
         
-        # Левый луч
-        [(-hw, -hy), (-hw, hy)],
-        [(-hw - wall_height_x, -hy), (-hw - wall_height_x, hy)],
-        [(-hw - wall_total_offset_x, -hy), (-hw - wall_total_offset_x, hy)]
+        # Левый луч (сдвигаем ближнюю линию на 4.5 мм вправо от границы дна -hw)
+        [(-hw + offset_val, -hy), (-hw + offset_val, hy)]
     ]
     
     for fold in folds:
