@@ -221,19 +221,16 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     
     hw, hy = base_w / 2, base_y / 2
     fold_gap = 9.0
-    half_gap = fold_gap / 2.0  # Ровно 4.5 мм (середина зазора)
+    half_gap = fold_gap / 2.0  # 4.5 мм
     
-    wall_height_y = 45.0 + 4.0 
-    wall_total_offset_y = wall_height_y + fold_gap 
+    wall_h_y = 45.0 + 4.0 
+    wall_h_x = 45.0 
     
     extra_flap_y = base_w / 2.0 
-    total_offset_y = wall_total_offset_y + fold_gap + extra_flap_y
-    
-    wall_height_x = 45.0 
-    wall_total_offset_x = wall_height_x + fold_gap 
+    total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
     
     extra_flap_x = base_y / 2.0 
-    total_offset_x = wall_total_offset_x + fold_gap + extra_flap_x
+    total_offset_x = fold_gap + wall_h_x + fold_gap + extra_flap_x
     
     overlap = 7.0 
     
@@ -260,26 +257,31 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
+    # Линии сгиба:
+    # 1-й сгиб: по центру первого gap
+    # 2-й сгиб: по центру второго gap (после стенки)
+    fold_y_1 = hy + half_gap
+    fold_y_2 = hy + fold_gap + wall_h_y + half_gap
+    
+    fold_x_1 = hw + half_gap
+    fold_x_2 = hw + fold_gap + wall_h_x + half_gap
+
     folds = [
         # --- ВЕРХНИЙ ЛУЧ ---
-        [(-hw - overlap, hy + half_gap), (hw + overlap, hy + half_gap)],
-        [(-hw - overlap, hy + wall_height_y + half_gap), (hw + overlap, hy + wall_height_y + half_gap)],
-        [(-hw - overlap, hy + wall_total_offset_y + half_gap), (hw + overlap, hy + wall_total_offset_y + half_gap)],
+        [(-hw - overlap, fold_y_1), (hw + overlap, fold_y_1)],
+        [(-hw - overlap, fold_y_2), (hw + overlap, fold_y_2)],
         
         # --- НИЖНИЙ ЛУЧ ---
-        [(-hw - overlap, -hy - half_gap), (hw + overlap, -hy - half_gap)],
-        [(-hw - overlap, -hy - wall_height_y - half_gap), (hw + overlap, -hy - wall_height_y - half_gap)],
-        [(-hw - overlap, -hy - wall_total_offset_y - half_gap), (hw + overlap, -hy - wall_total_offset_y - half_gap)],
+        [(-hw - overlap, -fold_y_1), (hw + overlap, -fold_y_1)],
+        [(-hw - overlap, -fold_y_2), (hw + overlap, -fold_y_2)],
         
         # --- ПРАВЫЙ ЛУЧ ---
-        [(hw + half_gap, -hy), (hw + half_gap, hy)],
-        [(hw + wall_height_x + half_gap, -hy), (hw + wall_height_x + half_gap, hy)],
-        [(hw + wall_total_offset_x + half_gap, -hy), (hw + wall_total_offset_x + half_gap, hy)],
+        [(fold_x_1, -hy), (fold_x_1, hy)],
+        [(fold_x_2, -hy), (fold_x_2, hy)],
         
         # --- ЛЕВЫЙ ЛУЧ ---
-        [(-hw - half_gap, -hy), (-hw - half_gap, hy)],
-        [(-hw - wall_height_x - half_gap, -hy), (-hw - wall_height_x - half_gap, hy)],
-        [(-hw - wall_total_offset_x - half_gap, -hy), (-hw - wall_total_offset_x - half_gap, hy)]
+        [(-fold_x_1, -hy), (-fold_x_1, hy)],
+        [(-fold_x_2, -hy), (-fold_x_2, hy)]
     ]
     
     for fold in folds:
