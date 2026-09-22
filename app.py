@@ -226,10 +226,11 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     wall_h_y = 45.0 + 4.0 
     wall_h_x = 45.0 
     
-    extra_flap_y = base_w / 2.0 
+    # Полу-клапаны поменяны местами осями
+    extra_flap_y = base_y / 2.0 
     total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
     
-    extra_flap_x = base_y / 2.0 
+    extra_flap_x = base_w / 2.0 
     total_offset_x = fold_gap + wall_h_x + fold_gap + extra_flap_x
     
     overlap = 7.0 
@@ -257,9 +258,6 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
-    # Линии сгиба:
-    # 1-й сгиб: по центру первого gap
-    # 2-й сгиб: по центру второго gap (после стенки)
     fold_y_1 = hy + half_gap
     fold_y_2 = hy + fold_gap + wall_h_y + half_gap
     
