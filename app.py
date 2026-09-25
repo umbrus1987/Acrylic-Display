@@ -35,6 +35,28 @@ def get_google_font_prop(font_name):
     
     return fm.FontProperties(weight='bold')
 
+def get_adaptive_font_size(text, base_height, max_chars_limit):
+    """Вычисляет размер шрифта в зависимости от длины текста и лимита шильда"""
+    if not text:
+        return base_height * 0.7
+    
+    length = len(text)
+    # Базовый размер для короткого текста
+    font_size = base_height * 0.7
+    
+    # Если символов много, плавно уменьшаем шрифт, чтобы заглавные буквы не вылезали
+    if max_chars_limit == 10:  # Маленький шильд (до 10 символов)
+        if length > 4:
+            # Плавное уменьшение от 5 символов и до 10
+            scale = max(0.55, 1.0 - (length - 4) * 0.065)
+            font_size = base_height * 0.7 * scale
+    else:  # Большой шильд (до 20 символов)
+        if length > 8:
+            scale = max(0.5, 1.0 - (length - 8) * 0.035)
+            font_size = base_height * 0.7 * scale
+            
+    return font_size
+
 # --- Вспомогательные функции ---
 def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part, thickness=3.0):
     r = 1.25
@@ -125,7 +147,7 @@ def draw_detail_3(msp, start_x, start_y, width, height, thickness, is_wide, is_h
     msp.add_lwpolyline(pts, close=True)
     add_holes(msp, start_x, start_y, width, height, is_wide, is_high, True, thickness=thickness)
 
-def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font_name):
+def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font_name, max_chars_limit):
     pts = []
     r, h = radius, height
     hw_t, hw_b = w_top / 2, w_bot / 2
@@ -146,7 +168,8 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
     
     if text:
         fp = get_google_font_prop(font_name)
-        tp = TextPath((0, 0), text, size=height * 0.7, prop=fp)
+        font_size = get_adaptive_font_size(text, height, max_chars_limit)
+        tp = TextPath((0, 0), text, size=font_size, prop=fp)
         
         bbox = tp.get_extents()
         dx = -(bbox.x0 + bbox.x1) / 2 + center_x
@@ -156,7 +179,7 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
             text_pts = [(p[0] + dx, p[1] + dy) for p in path_data]
             msp.add_lwpolyline(text_pts, close=True, dxfattribs={'color': 92})
 
-def show_preview(w_top, w_bot, height, text, font_name):
+def show_preview(w_top, w_bot, height, text, font_name, max_chars_limit):
     plt.close('all')
     fig, ax = plt.subplots(figsize=(6, 2))
     
@@ -166,7 +189,8 @@ def show_preview(w_top, w_bot, height, text, font_name):
     
     if text:
         fp = get_google_font_prop(font_name)
-        tp = TextPath((0, 0), text, size=height * 0.7, prop=fp)
+        font_size = get_adaptive_font_size(text, height, max_chars_limit)
+        tp = TextPath((0, 0), text, size=font_size, prop=fp)
         
         bbox = tp.get_extents()
         dx = -(bbox.x0 + bbox.x1) / 2
@@ -215,7 +239,6 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness, inp_w):
     msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
     
     if include_name_plate:
-        # Фиксированная ширина паза без привязки к толщине материала (thickness)
         fixed_line_w = 50.0 if inp_w <= 99 else 90.0
         half_line_w = fixed_line_w / 2
         bevel = 7
@@ -378,12 +401,12 @@ if st.session_state.get('name_plate_val', False):
     w_bot_val = 47.0 if inp_w <= 99 else 87.0
     
     if plate_text:
-        show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font)
+        show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font, max_c)
         
     if st.button("Generate Name Plate File"):
         doc = ezdxf.new('R2010')
         doc.units = units.MM
-        draw_trapezoid_plate(doc.modelspace(), 0, 0, w_top_val, w_bot_val, 13, 2, plate_text, plate_font)
+        draw_trapezoid_plate(doc.modelspace(), 0, 0, w_top_val, w_bot_val, 13, 2, plate_text, plate_font, max_c)
         
         stream = io.StringIO()
         doc.write(stream)
