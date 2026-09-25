@@ -333,7 +333,7 @@ def get_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
-def get_custom_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
+def get_custom_cardboard_box_dxf_bytes(w, y, h, custom_thick, fold_gap=9.0):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
@@ -343,7 +343,6 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
     dim_y = dims[1]  # Вторая по величине сторона -> Y
     wall_h = dims[2] # Третья сторона -> высота стенок
     
-    # Используем ровно введенные размеры без дополнительных оффсетов
     base_w = dim_x
     base_y = dim_y
     
@@ -359,7 +358,8 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
     extra_flap_y = base_y / 2.0 
     total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
     
-    overlap = 7.0 
+    # Динамический оффступ в зависимости от толщины картона
+    overlap = custom_thick 
     
     cross_pts = [
         (-hw - overlap, hy),
@@ -532,7 +532,7 @@ with box_col2:
     c_h = st.number_input("Высота", 50, 1500, 100)
     
     if st.button("Generate Custom Cardboard Box"):
-        st.session_state['custom_box_dxf'] = get_custom_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_gap)
+        st.session_state['custom_box_dxf'] = get_custom_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_thick, custom_gap)
         st.session_state['custom_box_file_name'] = f"CustomBox_{c_w:.1f}x{c_y:.1f}x{c_h:.1f}_({int(custom_thick)}mm).dxf"
         
     if 'custom_box_dxf' in st.session_state:
