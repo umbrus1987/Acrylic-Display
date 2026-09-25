@@ -173,6 +173,7 @@ def show_preview(w_top, w_bot, height, text, font_name):
         dx = -(bbox.x0 + bbox.x1) / 2
         dy = -(bbox.y0 + bbox.y1) / 2
         
+        # Отрисовываем чистым аутлайном без багов заливки
         for path_data in tp.to_polygons():
             text_pts = [(p[0] + dx, p[1] + dy) for p in path_data]
             px, py = zip(*text_pts)
@@ -249,7 +250,7 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     
     hw, hy = base_w / 2, base_y / 2
     fold_gap = 9.0
-    half_gap = fold_gap / 2.0  # 4.5 мм
+    half_gap = fold_gap / 2.0
     
     wall_h_y = 45.0 + 4.0 
     wall_h_x = 45.0 
@@ -292,19 +293,12 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     fold_x_2 = hw + fold_gap + wall_h_x + half_gap
 
     folds = [
-        # --- ВЕРХНИЙ ЛУЧ ---
         [(-hw - overlap, fold_y_1), (hw + overlap, fold_y_1)],
         [(-hw - overlap, fold_y_2), (hw + overlap, fold_y_2)],
-        
-        # --- НИЖНИЙ ЛУЧ ---
         [(-hw - overlap, -fold_y_1), (hw + overlap, -fold_y_1)],
         [(-hw - overlap, -fold_y_2), (hw + overlap, -fold_y_2)],
-        
-        # --- ПРАВЫЙ ЛУЧ ---
         [(fold_x_1, -hy), (fold_x_1, hy)],
         [(fold_x_2, -hy), (fold_x_2, hy)],
-        
-        # --- ЛЕВЫЙ ЛУЧ ---
         [(-fold_x_1, -hy), (-fold_x_1, hy)],
         [(-fold_x_2, -hy), (-fold_x_2, hy)]
     ]
@@ -377,7 +371,7 @@ with col2:
 
 if st.session_state.get('name_plate_val', False):
     st.subheader("Name Plate Settings")
-    plate_text = st.text_input("Текст (max 21)", max_chars=21)
+    plate_text = st.text_input("Текст (max 20)", max_chars=20)
     plate_font = st.selectbox("Шрифт", ["Girassol", "Pirata One", "Bigshot One"])
     if plate_text:
         show_preview(91, 87, 13, plate_text, plate_font)
