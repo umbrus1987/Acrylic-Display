@@ -160,7 +160,6 @@ def show_preview(w_top, w_bot, height, text, font_name):
     plt.close('all')
     fig, ax = plt.subplots(figsize=(6, 2))
     
-    # Рисуем контур трапеции таблички
     pts = [(-w_top/2, height/2), (w_top/2, height/2), (w_bot/2, -height/2), (-w_bot/2, -height/2), (-w_top/2, height/2)]
     x, y = zip(*pts)
     ax.plot(x, y, color='#b0b0b0', linewidth=1.5, linestyle='--')
@@ -173,7 +172,6 @@ def show_preview(w_top, w_bot, height, text, font_name):
         dx = -(bbox.x0 + bbox.x1) / 2
         dy = -(bbox.y0 + bbox.y1) / 2
         
-        # Отрисовываем чистым аутлайном без багов заливки
         for path_data in tp.to_polygons():
             text_pts = [(p[0] + dx, p[1] + dy) for p in path_data]
             px, py = zip(*text_pts)
@@ -199,7 +197,7 @@ def get_dxf_bytes(w1, y2, z, thickness, is_w_large, is_y_large, is_z_large):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
-def get_base_dxf_bytes(w, y, include_name_plate, thickness):
+def get_base_dxf_bytes(w, y, include_name_plate, thickness, inp_w):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
@@ -218,7 +216,9 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness):
     
     if include_name_plate:
         fixed_link_scale = thickness / 3.0
-        fixed_line_w = 90.0 * fixed_link_scale
+        # Если ширина меньше 100, уменьшаем ширину паза на 40 мм
+        base_line_w = 50.0 if inp_w < 100 else 90.0
+        fixed_line_w = base_line_w * fixed_link_scale
         half_line_w = fixed_line_w / 2
         bevel = int(7 * fixed_link_scale)
         
@@ -359,7 +359,7 @@ with col2:
     st.checkbox("Name Plate", key='name_plate_val')
     if st.button("Generate Base"):
         include_plate = st.session_state.get('name_plate_val', False)
-        st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, include_plate, thickness)
+        st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, include_plate, thickness, inp_w)
         st.session_state['base_file_name'] = f"Base_{width_x:.1f}x{depth_y:.1f}.dxf"
     
     if 'base_dxf' in st.session_state:
@@ -371,14 +371,23 @@ with col2:
 
 if st.session_state.get('name_plate_val', False):
     st.subheader("Name Plate Settings")
-    plate_text = st.text_input("Текст (max 20)", max_chars=20)
+    
+    # Динамическое ограничение символов и размеров шильда в зависимости от внутренней ширины
+    max_c = 12 if inp_w <= 99 else 20
+    plate_text = st.text_input(f"Текст (max {max_c})", max_chars=max_c)
     plate_font = st.selectbox("Шрифт", ["Girassol", "Pirata One", "Bigshot One"])
+    
+    # Размеры шильда: уменьшаем на 40 мм (было 91/87, стало 51/47)
+    w_top_val = 51.0 if inp_w <= 99 else 91.0
+    w_bot_val = 47.0 if inp_w <= 99 else 87.0
+    
     if plate_text:
-        show_preview(91, 87, 13, plate_text, plate_font)
+        show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font)
+        
     if st.button("Generate Name Plate File"):
         doc = ezdxf.new('R2010')
         doc.units = units.MM
-        draw_trapezoid_plate(doc.modelspace(), 0, 0, 91, 87, 13, 2, plate_text, plate_font)
+        draw_trapezoid_plate(doc.modelspace(), 0, 0, w_top_val, w_bot_val, 13, 2, plate_text, plate_font)
         
         stream = io.StringIO()
         doc.write(stream)
