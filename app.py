@@ -35,8 +35,8 @@ def get_google_font_prop(font_name):
     
     return fm.FontProperties(weight='bold')
 
-def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=47.0):
-    """Динамически вычисляет размер шрифта, чтобы текст не превышал max_allowed_width (47 мм)"""
+def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=46.0):
+    """Динамически вычисляет размер шрифта, чтобы текст не превышал max_allowed_width"""
     if not text:
         return base_height * 0.7
     
@@ -406,8 +406,8 @@ if st.session_state.get('name_plate_val', False):
     w_top_val = 51.0 if inp_w <= 99 else 91.0
     w_bot_val = 47.0 if inp_w <= 99 else 87.0
     
-    # Строгий лимит ровно по ширине низа шильда (47 мм / 87 мм)
-    max_text_width = 47.0 if inp_w <= 99 else 87.0
+    # Лимит ровно 46 мм (для маленького) и 86 мм (для большого)
+    max_text_width = 46.0 if inp_w <= 99 else 86.0
     
     if plate_text:
         show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font, max_text_width)
