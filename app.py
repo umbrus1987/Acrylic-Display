@@ -399,14 +399,13 @@ with col2:
 if st.session_state.get('name_plate_val', False):
     st.subheader("Name Plate Settings")
     
-    max_c = 10 if inp_w <= 99 else 20
+    max_c = 11 if inp_w <= 99 else 20
     plate_text = st.text_input(f"Текст (max {max_c})", max_chars=max_c)
     plate_font = st.selectbox("Шрифт", ["Girassol", "Pirata One", "Bigshot One"])
     
     w_top_val = 51.0 if inp_w <= 99 else 91.0
     w_bot_val = 47.0 if inp_w <= 99 else 87.0
     
-    # Лимит ровно 46 мм (для маленького) и 86 мм (для большого)
     max_text_width = 46.0 if inp_w <= 99 else 86.0
     
     if plate_text:
@@ -430,16 +429,17 @@ if st.session_state.get('name_plate_val', False):
             data=st.session_state['plate_dxf'], 
             file_name=st.session_state.get('plate_file_name', 'Plate.dxf')
         )
+
 st.divider()
 st.subheader("Cardboard Box (Cross Net)")
     
 if st.button("Generate Cardboard Box"):
-        st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z)
-        st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}.dxf"
+    st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z)
+    st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}.dxf"
     
 if 'box_dxf' in st.session_state:
-        st.download_button(
-            label="Скачать Box DXF", 
-            data=st.session_state['box_dxf'], 
-            file_name=st.session_state.get('box_file_name', 'Box.dxf')
-        )
+    st.download_button(
+        label="Скачать Box DXF", 
+        data=st.session_state['box_dxf'], 
+        file_name=st.session_state.get('box_file_name', 'Box.dxf')
+    )
