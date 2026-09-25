@@ -284,7 +284,6 @@ def get_cardboard_box_dxf_bytes(w, y, h, cardboard_thick, fold_gap=9.0):
     extra_flap_y = base_y / 2.0 
     total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
     
-    # Исправлено: теперь overlap берет переданную толщину картона
     overlap = cardboard_thick 
     
     cross_pts = [
@@ -359,7 +358,6 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, custom_thick, fold_gap=9.0):
     extra_flap_y = base_y / 2.0 
     total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
     
-    # Динамический отступ в зависимости от толщины картона
     overlap = custom_thick 
     
     cross_pts = [
@@ -446,7 +444,8 @@ with col2:
         is_z_large = inp_z > 150
         
         st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, thickness, is_w_large, is_y_large, is_z_large)
-        st.session_state['main_file_name'] = f"Main_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}.dxf"
+        # Имя файла по исходным размерам + толщина
+        st.session_state['main_file_name'] = f"Main_{inp_w}x{inp_y}x{inp_z}_({int(thickness)}mm).dxf"
     
     if 'dxf_data' in st.session_state:
         st.download_button(
@@ -459,7 +458,8 @@ with col2:
     if st.button("Generate Base"):
         include_plate = st.session_state.get('name_plate_val', False)
         st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, include_plate, thickness, inp_w)
-        st.session_state['base_file_name'] = f"Base_{width_x:.1f}x{depth_y:.1f}.dxf"
+        # Имя файла по исходным размерам + толщина
+        st.session_state['base_file_name'] = f"Base_{inp_w}x{inp_y}_({int(thickness)}mm).dxf"
     
     if 'base_dxf' in st.session_state:
         st.download_button(
@@ -493,7 +493,7 @@ if st.session_state.get('name_plate_val', False):
         st.session_state['plate_dxf'] = io.BytesIO(stream.getvalue().encode('utf-8'))
         
         clean_text = "".join([c for c in plate_text if c.isalnum() or c in (' ', '_')]).strip()
-        st.session_state['plate_file_name'] = f"Plate_{clean_text if clean_text else 'Custom'}.dxf"
+        st.session_state['plate_file_name'] = f"Plate_{clean_text if clean_text else 'Custom'}_({int(thickness)}mm).dxf"
         
     if 'plate_dxf' in st.session_state:
         st.download_button(
@@ -514,7 +514,8 @@ with box_col1:
         
     if st.button("Generate Cardboard Box"):
         st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, cardboard_thickness, box_fold_gap)
-        st.session_state['box_file_name'] = f"Box_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}_({int(cardboard_thickness)}mm).dxf"
+        # Имя файла по исходным размерам дисплея + толщина картона
+        st.session_state['box_file_name'] = f"Box_{inp_w}x{inp_y}x{inp_z}_({int(cardboard_thickness)}mm).dxf"
         
     if 'box_dxf' in st.session_state:
         st.download_button(
@@ -534,7 +535,8 @@ with box_col2:
     
     if st.button("Generate Custom Cardboard Box"):
         st.session_state['custom_box_dxf'] = get_custom_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_thick, custom_gap)
-        st.session_state['custom_box_file_name'] = f"CustomBox_{c_w:.1f}x{c_y:.1f}x{c_h:.1f}_({int(custom_thick)}mm).dxf"
+        # Имя файла по кастомным введенным размерам + толщина картона
+        st.session_state['custom_box_file_name'] = f"CustomBox_{c_w}x{c_y}x{c_h}_({int(custom_thick)}mm).dxf"
         
     if 'custom_box_dxf' in st.session_state:
         st.download_button(
