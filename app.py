@@ -158,17 +158,39 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
 
 def show_preview(w_top, w_bot, height, text, font_name):
     plt.close('all')
-    fig, ax = plt.subplots(figsize=(5, 1.5))
+    fig, ax = plt.subplots(figsize=(6, 2))
+    
+    # Рисуем контур трапеции таблички
     pts = [(-w_top/2, height/2), (w_top/2, height/2), (w_bot/2, -height/2), (-w_bot/2, -height/2), (-w_top/2, height/2)]
     x, y = zip(*pts)
-    ax.plot(x, y, 'g-')
+    ax.plot(x, y, color='#cccccc', linewidth=1.5, linestyle='--') # Серый пунктир рамки
     
-    fp = get_google_font_prop(font_name)
-    
-    ax.text(0, 0, text, ha='center', va='center', fontsize=20, 
-            fontproperties=fp)
+    if text:
+        fp = get_google_font_prop(font_name)
+        # Используем ровно тот же расчет размера, что и для DXF (height * 0.7)
+        tp = TextPath((0, 0), text, size=height * 0.7, prop=fp)
+        
+        bbox = tp.get_extents()
+        dx = -(bbox.x0 + bbox.x1) / 2
+        dy = -(bbox.y0 + bbox.y1) / 2
+        
+        # Отрисовываем полилинии текста точно так же, как в ezdxf
+        from matplotlib.patches import Polygon
+        from matplotlib.collections import PatchCollection
+        
+        patches = []
+        for path_data in tp.to_polygons():
+            # сдвигаем центрирование текста в начало координат (0,0)
+            text_pts = [(p[0] + dx, p[1] + dy) for p in path_data]
+            polygon = Polygon(text_pts, closed=True)
+            patches.append(polygon)
+            
+        collection = PatchCollection(patches, facecolor='#2b2b2b', edgecolor='none')
+        ax.add_collection(collection)
     
     ax.set_aspect('equal')
+    ax.autoscale()
+    ax.margins(0.1) # Небольшие отступы вокруг
     ax.axis('off')
     st.pyplot(fig)
 
