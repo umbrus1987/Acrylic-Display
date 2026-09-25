@@ -216,8 +216,8 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness, inp_w):
     
     if include_name_plate:
         fixed_link_scale = thickness / 3.0
-        # Если ширина меньше 100, уменьшаем ширину паза на 40 мм
-        base_line_w = 50.0 if inp_w < 100 else 90.0
+        # Ширина паза уменьшена на 40 мм (50 вместо 90) для ширины <= 99
+        base_line_w = 50.0 if inp_w <= 99 else 90.0
         fixed_line_w = base_line_w * fixed_link_scale
         half_line_w = fixed_line_w / 2
         bevel = int(7 * fixed_link_scale)
@@ -372,12 +372,12 @@ with col2:
 if st.session_state.get('name_plate_val', False):
     st.subheader("Name Plate Settings")
     
-    # Динамическое ограничение символов и размеров шильда в зависимости от внутренней ширины
-    max_c = 12 if inp_w <= 99 else 20
+    # Ограничение символов: 10 для ширины <= 99, иначе 20
+    max_c = 10 if inp_w <= 99 else 20
     plate_text = st.text_input(f"Текст (max {max_c})", max_chars=max_c)
     plate_font = st.selectbox("Шрифт", ["Girassol", "Pirata One", "Bigshot One"])
     
-    # Размеры шильда: уменьшаем на 40 мм (было 91/87, стало 51/47)
+    # Размеры шильда: уменьшены на 40 мм (51/47 вместо 91/87) при ширине <= 99
     w_top_val = 51.0 if inp_w <= 99 else 91.0
     w_bot_val = 47.0 if inp_w <= 99 else 87.0
     
