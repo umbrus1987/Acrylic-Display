@@ -258,7 +258,7 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness, inp_w):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
-def get_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
+def get_cardboard_box_dxf_bytes(w, y, h, cardboard_thick, fold_gap=9.0):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
@@ -284,7 +284,8 @@ def get_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
     extra_flap_y = base_y / 2.0 
     total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
     
-    overlap = 7.0 
+    # Динамический отступ в зависимости от выбранной толщины картона
+    overlap = cardboard_thick 
     
     cross_pts = [
         (-hw - overlap, hy),
@@ -358,7 +359,7 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, custom_thick, fold_gap=9.0):
     extra_flap_y = base_y / 2.0 
     total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
     
-    # Динамический оффступ в зависимости от толщины картона
+    # Динамический отступ в зависимости от толщины картона
     overlap = custom_thick 
     
     cross_pts = [
@@ -512,7 +513,7 @@ with box_col1:
     box_fold_gap = 9.0 if cardboard_thickness == 7.0 else 6.0
         
     if st.button("Generate Cardboard Box"):
-        st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, box_fold_gap)
+        st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, cardboard_thickness, box_fold_gap)
         st.session_state['box_file_name'] = f"Box_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}_({int(cardboard_thickness)}mm).dxf"
         
     if 'box_dxf' in st.session_state:
