@@ -333,6 +333,80 @@ def get_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
+def get_custom_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
+    doc = ezdxf.new('R2010')
+    doc.units = units.MM
+    msp = doc.modelspace()
+    
+    dims = sorted([w, y, h], reverse=True)
+    dim_x = dims[0]  # Самая длинная -> X
+    dim_y = dims[1]  # Вторая -> Y
+    wall_h = dims[2] # Третья -> высота стенок
+    
+    base_w = dim_x + 27.0
+    base_y = dim_y + 27.0
+    
+    hw, hy = base_w / 2, base_y / 2
+    half_gap = fold_gap / 2.0
+    
+    wall_h_y = wall_h + 4.0 
+    wall_h_x = wall_h 
+    
+    extra_flap_x = 50.0 
+    total_offset_x = fold_gap + wall_h_x + fold_gap + extra_flap_x
+    
+    extra_flap_y = base_y / 2.0 
+    total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
+    
+    overlap = 7.0 
+    
+    cross_pts = [
+        (-hw - overlap, hy),
+        (-hw - overlap, hy + total_offset_y),
+        (hw + overlap, hy + total_offset_y),
+        (hw + overlap, hy),
+        
+        (hw, hy),
+        (hw + total_offset_x, hy),
+        (hw + total_offset_x, -hy),
+        (hw, -hy),
+        
+        (hw + overlap, -hy),
+        (hw + overlap, -hy - total_offset_y),
+        (-hw - overlap, -hy - total_offset_y),
+        (-hw - overlap, -hy),
+        
+        (-hw, -hy),
+        (-hw - total_offset_x, -hy),
+        (-hw - total_offset_x, hy),
+        (-hw, hy)
+    ]
+    msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
+    
+    fold_y_1 = hy + half_gap
+    fold_y_2 = hy + fold_gap + wall_h_y + half_gap
+    
+    fold_x_1 = hw + half_gap
+    fold_x_2 = hw + fold_gap + wall_h_x + half_gap
+
+    folds = [
+        [(-hw - overlap, fold_y_1), (hw + overlap, fold_y_1)],
+        [(-hw - overlap, fold_y_2), (hw + overlap, fold_y_2)],
+        [(-hw - overlap, -fold_y_1), (hw + overlap, -fold_y_1)],
+        [(-hw - overlap, -fold_y_2), (hw + overlap, -fold_y_2)],
+        [(fold_x_1, -hy), (fold_x_1, hy)],
+        [(fold_x_2, -hy), (fold_x_2, hy)],
+        [(-fold_x_1, -hy), (-fold_x_1, hy)],
+        [(-fold_x_2, -hy), (-fold_x_2, hy)]
+    ]
+    
+    for fold in folds:
+        msp.add_lwpolyline(fold, close=False, dxfattribs={'color': 2})
+        
+    stream = io.StringIO()
+    doc.write(stream)
+    return io.BytesIO(stream.getvalue().encode('utf-8'))
+
 # --- UI ---
 st.title("Acrylic Display Generator")
 st.markdown("""
@@ -452,12 +526,12 @@ with box_col2:
     custom_thick = st.radio("Толщина картона кастомной коробки", [7.0, 4.0], key="box_thick_custom", format_func=lambda x: f"{int(x)} мм", horizontal=True)
     custom_gap = 9.0 if custom_thick == 7.0 else 6.0
     
-    c_w = st.number_input("Кастомная ширина (X)", 50, 1500, 100)
-    c_y = st.number_input("Кастомная глубина (Y)", 50, 1500, 100)
-    c_h = st.number_input("Кастомная высота (Z)", 50, 1500, 100)
+    c_w = st.number_input("Длина / Ширина 1", 50, 1500, 100)
+    c_y = st.number_input("Длина / Ширина 2", 50, 1500, 100)
+    c_h = st.number_input("Высота / Сторона 3", 50, 1500, 100)
     
     if st.button("Generate Custom Cardboard Box"):
-        st.session_state['custom_box_dxf'] = get_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_gap)
+        st.session_state['custom_box_dxf'] = get_custom_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_gap)
         st.session_state['custom_box_file_name'] = f"CustomBox_{c_w:.1f}x{c_y:.1f}x{c_h:.1f}_({int(custom_thick)}mm).dxf"
         
     if 'custom_box_dxf' in st.session_state:
