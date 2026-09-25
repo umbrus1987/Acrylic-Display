@@ -35,12 +35,12 @@ def get_google_font_prop(font_name):
     
     return fm.FontProperties(weight='bold')
 
-def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=49.0):
-    """Вычисляет размер шрифта так, чтобы текст строго не превышал max_allowed_width"""
+def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=47.0):
+    """Динамически вычисляет размер шрифта, чтобы текст не превышал max_allowed_width (47 мм)"""
     if not text:
         return base_height * 0.7
     
-    # Начинаем с базового желаемого размера (70% от высоты шильда)
+    # Стартуем с базового комфортного размера (70% от высоты шильда)
     font_size = base_height * 0.7
     
     try:
@@ -49,12 +49,12 @@ def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=49.0)
         bbox = tp.get_extents()
         current_width = bbox.x1 - bbox.x0
         
-        # Если текст шире установленного лимита (например, 49 мм), пропорционально уменьшаем размер
+        # Если текст превышает лимит (47 мм), пропорционально уменьшаем его
         if current_width > max_allowed_width:
             scale = max_allowed_width / current_width
             font_size *= scale
             
-            # Страховка минимального читаемого размера (чтобы текст не превратился в невидимую точку)
+            # Страховка минимального читаемого размера
             min_limit = base_height * 0.3
             if font_size < min_limit:
                 font_size = min_limit
@@ -406,16 +406,16 @@ if st.session_state.get('name_plate_val', False):
     w_top_val = 51.0 if inp_w <= 99 else 91.0
     w_bot_val = 47.0 if inp_w <= 99 else 87.0
     
-    # Лимит ширины текста: 49 мм для маленького шильда, 87 мм для большого шильда
-    max_allowed_w = 49.0 if inp_w <= 99 else 87.0
+    # Задаем жесткий лимит ширины текста (с небольшим запасом под отступы шильда)
+    max_text_width = 41.0 if inp_w <= 99 else 81.0  # (w_bot_val - 6 мм на отступы по бокам)
     
     if plate_text:
-        show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font, max_allowed_w)
+        show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font, max_text_width)
         
     if st.button("Generate Name Plate File"):
         doc = ezdxf.new('R2010')
         doc.units = units.MM
-        draw_trapezoid_plate(doc.modelspace(), 0, 0, w_top_val, w_bot_val, 13, 2, plate_text, plate_font, max_allowed_w)
+        draw_trapezoid_plate(doc.modelspace(), 0, 0, w_top_val, w_bot_val, 13, 2, plate_text, plate_font, max_text_width)
         
         stream = io.StringIO()
         doc.write(stream)
