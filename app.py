@@ -339,12 +339,13 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
     msp = doc.modelspace()
     
     dims = sorted([w, y, h], reverse=True)
-    dim_x = dims[0]  # Самая длинная -> X
-    dim_y = dims[1]  # Вторая -> Y
-    wall_h = dims[2] # Третья -> высота стенок
+    dim_x = dims[0]  # Самая длинная сторона -> X
+    dim_y = dims[1]  # Вторая по величине сторона -> Y
+    wall_h = dims[2] # Третья сторона -> высота стенок
     
-    base_w = dim_x + 27.0
-    base_y = dim_y + 27.0
+    # Используем ровно введенные размеры без дополнительных оффсетов
+    base_w = dim_x
+    base_y = dim_y
     
     hw, hy = base_w / 2, base_y / 2
     half_gap = fold_gap / 2.0
