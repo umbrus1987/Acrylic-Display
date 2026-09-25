@@ -427,18 +427,42 @@ if st.session_state.get('name_plate_val', False):
         )
 
 st.divider()
-st.subheader("Cardboard Box (Cross Net)")
 
-cardboard_thickness = st.radio("Толщина картона коробки", [7.0, 4.0], format_func=lambda x: f"{int(x)} мм", horizontal=True)
-box_fold_gap = 9.0 if cardboard_thickness == 7.0 else 6.0
+# --- Раздел коробок в две колонки ---
+box_col1, box_col2 = st.columns(2)
+
+with box_col1:
+    st.subheader("Cardboard Box")
+    cardboard_thickness = st.radio("Толщина картона коробки", [7.0, 4.0], key="box_thick_main", format_func=lambda x: f"{int(x)} мм", horizontal=True)
+    box_fold_gap = 9.0 if cardboard_thickness == 7.0 else 6.0
+        
+    if st.button("Generate Cardboard Box"):
+        st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, box_fold_gap)
+        st.session_state['box_file_name'] = f"Box_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}_({int(cardboard_thickness)}mm).dxf"
+        
+    if 'box_dxf' in st.session_state:
+        st.download_button(
+            label="Скачать Box DXF", 
+            data=st.session_state['box_dxf'], 
+            file_name=st.session_state.get('box_file_name', 'Box.dxf')
+        )
+
+with box_col2:
+    st.subheader("Custom Cardboard Box")
+    custom_thick = st.radio("Толщина картона кастомной коробки", [7.0, 4.0], key="box_thick_custom", format_func=lambda x: f"{int(x)} мм", horizontal=True)
+    custom_gap = 9.0 if custom_thick == 7.0 else 6.0
     
-if st.button("Generate Cardboard Box"):
-    st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, box_fold_gap)
-    st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}_({int(cardboard_thickness)}mm).dxf"
+    c_w = st.number_input("Кастомная ширина (X)", 50, 1500, 100)
+    c_y = st.number_input("Кастомная глубина (Y)", 50, 1500, 100)
+    c_h = st.number_input("Кастомная высота (Z)", 50, 1500, 100)
     
-if 'box_dxf' in st.session_state:
-    st.download_button(
-        label="Скачать Box DXF", 
-        data=st.session_state['box_dxf'], 
-        file_name=st.session_state.get('box_file_name', 'Box.dxf')
-    )
+    if st.button("Generate Custom Cardboard Box"):
+        st.session_state['custom_box_dxf'] = get_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_gap)
+        st.session_state['custom_box_file_name'] = f"CustomBox_{c_w:.1f}x{c_y:.1f}x{c_h:.1f}_({int(custom_thick)}mm).dxf"
+        
+    if 'custom_box_dxf' in st.session_state:
+        st.download_button(
+            label="Скачать Custom Box DXF", 
+            data=st.session_state['custom_box_dxf'], 
+            file_name=st.session_state.get('custom_box_file_name', 'CustomBox.dxf')
+        )
