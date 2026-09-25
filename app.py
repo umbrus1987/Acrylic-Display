@@ -284,7 +284,7 @@ def get_cardboard_box_dxf_bytes(w, y, h, cardboard_thick, fold_gap=9.0):
     extra_flap_y = base_y / 2.0 
     total_offset_y = fold_gap + wall_h_y + fold_gap + extra_flap_y
     
-    # Динамический отступ в зависимости от выбранной толщины картона
+    # Исправлено: теперь overlap берет переданную толщину картона
     overlap = cardboard_thick 
     
     cross_pts = [
