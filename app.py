@@ -146,7 +146,8 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
     
     if text:
         fp = get_google_font_prop(font_name)
-        tp = TextPath((0, 0), text, size=height*0.4, prop=fp)
+        # Размер увеличен до 0.7 от высоты таблички
+        tp = TextPath((0, 0), text, size=height * 0.7, prop=fp)
         
         bbox = tp.get_extents()
         dx = -(bbox.x0 + bbox.x1) / 2 + center_x
@@ -165,7 +166,7 @@ def show_preview(w_top, w_bot, height, text, font_name):
     
     fp = get_google_font_prop(font_name)
     
-    ax.text(0, 0, text, ha='center', va='center', fontsize=14, 
+    ax.text(0, 0, text, ha='center', va='center', fontsize=20, 
             fontproperties=fp)
     
     ax.set_aspect('equal')
