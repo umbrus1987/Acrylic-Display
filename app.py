@@ -146,7 +146,6 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
     
     if text:
         fp = get_google_font_prop(font_name)
-        # Размер увеличен до 0.7 от высоты таблички
         tp = TextPath((0, 0), text, size=height * 0.7, prop=fp)
         
         bbox = tp.get_extents()
@@ -366,7 +365,7 @@ with col2:
 
 if st.session_state.get('name_plate_val', False):
     st.subheader("Name Plate Settings")
-    plate_text = st.text_input("Текст (max 16)", max_chars=16)
+    plate_text = st.text_input("Текст (max 23)", max_chars=23)
     plate_font = st.selectbox("Шрифт", ["Girassol", "Pirata One", "Bigshot One"])
     if plate_text:
         show_preview(91, 87, 13, plate_text, plate_font)
