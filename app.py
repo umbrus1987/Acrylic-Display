@@ -49,7 +49,7 @@ def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=47.0)
         bbox = tp.get_extents()
         current_width = bbox.x1 - bbox.x0
         
-        # Если текст превышает лимит (47 мм), пропорционально уменьшаем его
+        # Если текст превышает лимит, пропорционально уменьшаем его
         if current_width > max_allowed_width:
             scale = max_allowed_width / current_width
             font_size *= scale
@@ -406,8 +406,8 @@ if st.session_state.get('name_plate_val', False):
     w_top_val = 51.0 if inp_w <= 99 else 91.0
     w_bot_val = 47.0 if inp_w <= 99 else 87.0
     
-    # Задаем жесткий лимит ширины текста (с небольшим запасом под отступы шильда)
-    max_text_width = 41.0 if inp_w <= 99 else 81.0  # (w_bot_val - 6 мм на отступы по бокам)
+    # Строгий лимит ровно по ширине низа шильда (47 мм / 87 мм)
+    max_text_width = 47.0 if inp_w <= 99 else 87.0
     
     if plate_text:
         show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font, max_text_width)
