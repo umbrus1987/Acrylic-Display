@@ -4,10 +4,36 @@ import streamlit as st
 import ezdxf
 import io
 import math
+import os
+import urllib.request
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 from ezdxf import units
 from matplotlib.textpath import TextPath
 from matplotlib.font_manager import FontProperties
+
+# --- Настройка Google Fonts ---
+GOOGLE_FONTS = {
+    "Girassol": "https://github.com/google/fonts/raw/main/ofl/girassol/Girassol-Regular.ttf",
+    "Pirata One": "https://github.com/google/fonts/raw/main/ofl/pirataone/PirataOne-Regular.ttf",
+    "Bigshot One": "https://github.com/google/fonts/raw/main/ofl/bigshotone/BigshotOne-Regular.ttf"
+}
+
+def get_google_font_prop(font_name):
+    filename = f"{font_name.replace(' ', '')}-Regular.ttf"
+    if not os.path.exists(filename):
+        try:
+            url = GOOGLE_FONTS.get(font_name)
+            if url:
+                urllib.request.urlretrieve(url, filename)
+        except Exception:
+            pass
+            
+    if os.path.exists(filename):
+        fm.fontManager.addfont(filename)
+        return fm.FontProperties(fname=filename)
+    
+    return fm.FontProperties(weight='bold')
 
 # --- Вспомогательные функции ---
 def add_holes(msp, start_x, start_y, width, height, is_wide, is_high, is_bottom_part, thickness=3.0):
@@ -99,7 +125,7 @@ def draw_detail_3(msp, start_x, start_y, width, height, thickness, is_wide, is_h
     msp.add_lwpolyline(pts, close=True)
     add_holes(msp, start_x, start_y, width, height, is_wide, is_high, True, thickness=thickness)
 
-def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font):
+def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font_name):
     pts = []
     r, h = radius, height
     hw_t, hw_b = w_top / 2, w_bot / 2
@@ -119,10 +145,7 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
     msp.add_lwpolyline(pts, close=True, dxfattribs={'color': 7})
     
     if text:
-        font_map = {"STANDARD": "sans-serif", "TXT": "monospace", "ROMANS": "serif", "ITALIC": "serif"}
-        family = font_map.get(font, "sans-serif")
-        
-        fp = FontProperties(family=family, weight='bold')
+        fp = get_google_font_prop(font_name)
         tp = TextPath((0, 0), text, size=height*0.4, prop=fp)
         
         bbox = tp.get_extents()
@@ -140,17 +163,10 @@ def show_preview(w_top, w_bot, height, text, font_name):
     x, y = zip(*pts)
     ax.plot(x, y, 'g-')
     
-    font_map = {
-        "STANDARD": "sans-serif",
-        "TXT": "monospace",
-        "ROMANS": "serif",
-        "ITALIC": "serif"
-    }
-    family = font_map.get(font_name, "sans-serif")
-    style = "italic" if font_name == "ITALIC" else "normal"
+    fp = get_google_font_prop(font_name)
     
     ax.text(0, 0, text, ha='center', va='center', fontsize=14, 
-            fontweight='bold', fontfamily=family, fontstyle=style)
+            fontproperties=fp)
     
     ax.set_aspect('equal')
     ax.axis('off')
@@ -226,7 +242,6 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     wall_h_y = 45.0 + 4.0 
     wall_h_x = 45.0 
     
-    # Фиксированная длина ушей (влево и вправо) = 50 мм
     extra_flap_x = 50.0 
     total_offset_x = fold_gap + wall_h_x + fold_gap + extra_flap_x
     
@@ -351,7 +366,7 @@ with col2:
 if st.session_state.get('name_plate_val', False):
     st.subheader("Name Plate Settings")
     plate_text = st.text_input("Текст (max 16)", max_chars=16)
-    plate_font = st.selectbox("Шрифт", ["STANDARD", "ROMANS", "ITALIC"])
+    plate_font = st.selectbox("Шрифт", ["Girassol", "Pirata One", "Bigshot One"])
     if plate_text:
         show_preview(91, 87, 13, plate_text, plate_font)
     if st.button("Generate Name Plate File"):
