@@ -526,9 +526,9 @@ with box_col2:
     custom_thick = st.radio("Толщина картона кастомной коробки", [7.0, 4.0], key="box_thick_custom", format_func=lambda x: f"{int(x)} мм", horizontal=True)
     custom_gap = 9.0 if custom_thick == 7.0 else 6.0
     
-    c_w = st.number_input("Длина / Ширина 1", 50, 1500, 100)
-    c_y = st.number_input("Длина / Ширина 2", 50, 1500, 100)
-    c_h = st.number_input("Высота / Сторона 3", 50, 1500, 100)
+    c_w = st.number_input("1) Ширина", 50, 1500, 100)
+    c_y = st.number_input("2) Глубина", 50, 1500, 100)
+    c_h = st.number_input("3) Высота", 50, 1500, 100)
     
     if st.button("Generate Custom Cardboard Box"):
         st.session_state['custom_box_dxf'] = get_custom_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_gap)
