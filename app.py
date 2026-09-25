@@ -40,7 +40,6 @@ def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=46.0)
     if not text:
         return base_height * 0.7
     
-    # Стартуем с базового комфортного размера (70% от высоты шильда)
     font_size = base_height * 0.7
     
     try:
@@ -49,12 +48,10 @@ def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=46.0)
         bbox = tp.get_extents()
         current_width = bbox.x1 - bbox.x0
         
-        # Если текст превышает лимит, пропорционально уменьшаем его
         if current_width > max_allowed_width:
             scale = max_allowed_width / current_width
             font_size *= scale
             
-            # Страховка минимального читаемого размера
             min_limit = base_height * 0.3
             if font_size < min_limit:
                 font_size = min_limit
@@ -261,7 +258,7 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness, inp_w):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
-def get_cardboard_box_dxf_bytes(w, y, h):
+def get_cardboard_box_dxf_bytes(w, y, h, fold_gap=9.0):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
@@ -276,7 +273,6 @@ def get_cardboard_box_dxf_bytes(w, y, h):
     base_y = dim_y + 27.0
     
     hw, hy = base_w / 2, base_y / 2
-    fold_gap = 9.0
     half_gap = fold_gap / 2.0
     
     wall_h_y = 45.0 + 4.0 
@@ -432,10 +428,13 @@ if st.session_state.get('name_plate_val', False):
 
 st.divider()
 st.subheader("Cardboard Box (Cross Net)")
+
+cardboard_thickness = st.radio("Толщина картона коробки", [7.0, 4.0], format_func=lambda x: f"{int(x)} мм", horizontal=True)
+box_fold_gap = 9.0 if cardboard_thickness == 7.0 else 6.0
     
 if st.button("Generate Cardboard Box"):
-    st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z)
-    st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}.dxf"
+    st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, box_fold_gap)
+    st.session_state['box_file_name'] = f"Box_Cross_{width_x:.1f}x{depth_y:.1f}x{height_z:.1f}_({int(cardboard_thickness)}mm).dxf"
     
 if 'box_dxf' in st.session_state:
     st.download_button(
