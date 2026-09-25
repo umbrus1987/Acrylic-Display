@@ -35,26 +35,32 @@ def get_google_font_prop(font_name):
     
     return fm.FontProperties(weight='bold')
 
-def get_adaptive_font_size(text, base_height, max_chars_limit):
-    """Вычисляет размер шрифта в зависимости от длины текста и лимита шильда"""
+def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=49.0):
+    """Вычисляет размер шрифта так, чтобы текст строго не превышал max_allowed_width"""
     if not text:
         return base_height * 0.7
     
-    length = len(text)
-    # Базовый размер для короткого текста
+    # Начинаем с базового желаемого размера (70% от высоты шильда)
     font_size = base_height * 0.7
     
-    # Если символов много, плавно уменьшаем шрифт, чтобы заглавные буквы не вылезали
-    if max_chars_limit == 10:  # Маленький шильд (до 10 символов)
-        if length > 4:
-            # Плавное уменьшение от 5 символов и до 10
-            scale = max(0.55, 1.0 - (length - 4) * 0.065)
-            font_size = base_height * 0.7 * scale
-    else:  # Большой шильд (до 20 символов)
-        if length > 8:
-            scale = max(0.5, 1.0 - (length - 8) * 0.035)
-            font_size = base_height * 0.7 * scale
+    try:
+        fp = get_google_font_prop(font_name)
+        tp = TextPath((0, 0), text, size=font_size, prop=fp)
+        bbox = tp.get_extents()
+        current_width = bbox.x1 - bbox.x0
+        
+        # Если текст шире установленного лимита (например, 49 мм), пропорционально уменьшаем размер
+        if current_width > max_allowed_width:
+            scale = max_allowed_width / current_width
+            font_size *= scale
             
+            # Страховка минимального читаемого размера (чтобы текст не превратился в невидимую точку)
+            min_limit = base_height * 0.3
+            if font_size < min_limit:
+                font_size = min_limit
+    except Exception:
+        pass
+        
     return font_size
 
 # --- Вспомогательные функции ---
@@ -147,7 +153,7 @@ def draw_detail_3(msp, start_x, start_y, width, height, thickness, is_wide, is_h
     msp.add_lwpolyline(pts, close=True)
     add_holes(msp, start_x, start_y, width, height, is_wide, is_high, True, thickness=thickness)
 
-def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font_name, max_chars_limit):
+def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, text, font_name, max_allowed_width):
     pts = []
     r, h = radius, height
     hw_t, hw_b = w_top / 2, w_bot / 2
@@ -168,7 +174,7 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
     
     if text:
         fp = get_google_font_prop(font_name)
-        font_size = get_adaptive_font_size(text, height, max_chars_limit)
+        font_size = get_adaptive_font_size(text, height, font_name, max_allowed_width)
         tp = TextPath((0, 0), text, size=font_size, prop=fp)
         
         bbox = tp.get_extents()
@@ -179,7 +185,7 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
             text_pts = [(p[0] + dx, p[1] + dy) for p in path_data]
             msp.add_lwpolyline(text_pts, close=True, dxfattribs={'color': 92})
 
-def show_preview(w_top, w_bot, height, text, font_name, max_chars_limit):
+def show_preview(w_top, w_bot, height, text, font_name, max_allowed_width):
     plt.close('all')
     fig, ax = plt.subplots(figsize=(6, 2))
     
@@ -189,7 +195,7 @@ def show_preview(w_top, w_bot, height, text, font_name, max_chars_limit):
     
     if text:
         fp = get_google_font_prop(font_name)
-        font_size = get_adaptive_font_size(text, height, max_chars_limit)
+        font_size = get_adaptive_font_size(text, height, font_name, max_allowed_width)
         tp = TextPath((0, 0), text, size=font_size, prop=fp)
         
         bbox = tp.get_extents()
@@ -400,13 +406,16 @@ if st.session_state.get('name_plate_val', False):
     w_top_val = 51.0 if inp_w <= 99 else 91.0
     w_bot_val = 47.0 if inp_w <= 99 else 87.0
     
+    # Лимит ширины текста: 49 мм для маленького шильда, 87 мм для большого шильда
+    max_allowed_w = 49.0 if inp_w <= 99 else 87.0
+    
     if plate_text:
-        show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font, max_c)
+        show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font, max_allowed_w)
         
     if st.button("Generate Name Plate File"):
         doc = ezdxf.new('R2010')
         doc.units = units.MM
-        draw_trapezoid_plate(doc.modelspace(), 0, 0, w_top_val, w_bot_val, 13, 2, plate_text, plate_font, max_c)
+        draw_trapezoid_plate(doc.modelspace(), 0, 0, w_top_val, w_bot_val, 13, 2, plate_text, plate_font, max_allowed_w)
         
         stream = io.StringIO()
         doc.write(stream)
