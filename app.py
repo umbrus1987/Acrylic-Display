@@ -430,7 +430,7 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.image("Picture.png", use_container_width=True)
 with col2:
-    inp_w = st.number_input("LENGHT - Внутренняя ширина (X)", 50, 800, 60)
+    inp_w = st.number_input("WIDTH - Внутренняя ширина (X)", 50, 800, 60)
     inp_y = st.number_input("DEPTH - Внутренняя глубина (Y)", 50, 800, 60)
     inp_z = st.number_input("HEIGHT - Внутренняя высота (Z)", 50, 800, 80)
 
