@@ -36,7 +36,6 @@ def get_google_font_prop(font_name):
     return fm.FontProperties(weight='bold')
 
 def get_adaptive_font_size(text, base_height, font_name, max_allowed_width=46.0):
-    """Динамически вычисляет размер шрифта, чтобы текст не превышал max_allowed_width"""
     if not text:
         return base_height * 0.7
     
@@ -224,7 +223,7 @@ def get_dxf_bytes(w1, y2, z, thickness, is_w_large, is_y_large, is_z_large):
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
-def get_base_dxf_bytes(w, y, include_name_plate, thickness, inp_w):
+def get_base_dxf_bytes(w, y, thickness, inp_w):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
     msp = doc.modelspace()
@@ -241,19 +240,49 @@ def get_base_dxf_bytes(w, y, include_name_plate, thickness, inp_w):
     red_bottom_y = -hh2 
     msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
     
-    if include_name_plate:
-        fixed_line_w = 50.0 if inp_w <= 99 else 90.0
-        half_line_w = fixed_line_w / 2
-        bevel = 7
-        
-        pts_green = [
-            (-half_line_w - bevel, red_bottom_y - bevel), 
-            (-half_line_w, red_bottom_y),                
-            (half_line_w, red_bottom_y),                 
-            (half_line_w + bevel, red_bottom_y - bevel)  
-        ]
-        msp.add_lwpolyline(pts_green, close=False, dxfattribs={'color': 3})
+    # База ВСЕГДА генерируется с посадочным местом под шильдик
+    fixed_line_w = 50.0 if inp_w <= 99 else 90.0
+    half_line_w = fixed_line_w / 2
+    bevel = 7
+    
+    pts_green = [
+        (-half_line_w - bevel, red_bottom_y - bevel), 
+        (-half_line_w, red_bottom_y),                
+        (half_line_w, red_bottom_y),                 
+        (half_line_w + bevel, red_bottom_y - bevel)  
+    ]
+    msp.add_lwpolyline(pts_green, close=False, dxfattribs={'color': 3})
 
+    stream = io.StringIO()
+    doc.write(stream)
+    return io.BytesIO(stream.getvalue().encode('utf-8'))
+
+def get_leather_dxf_bytes(w, y):
+    doc = ezdxf.new('R2010')
+    doc.units = units.MM
+    msp = doc.modelspace()
+    
+    leather_w = w + 8.18
+    leather_h = y + 8.18
+    radius = 2.0
+    hw, hh = leather_w / 2, leather_h / 2
+    r = radius
+    pts = []
+    
+    def get_arc_points(cx, cy, start_angle, end_angle, radius, steps=8):
+        arc_pts = []
+        for i in range(steps + 1):
+            angle = math.radians(start_angle + (end_angle - start_angle) * i / steps)
+            arc_pts.append((cx + radius * math.cos(angle), cy + radius * math.sin(angle)))
+        return arc_pts
+        
+    pts.extend(get_arc_points(hw - r, hh - r, 0, 90, r))
+    pts.extend(get_arc_points(-hw + r, hh - r, 90, 180, r))
+    pts.extend(get_arc_points(-hw + r, -hh + r, 180, 270, r))
+    pts.extend(get_arc_points(hw - r, -hh + r, 270, 360, r))
+    
+    msp.add_lwpolyline(pts, close=True, dxfattribs={'color': 7})
+    
     stream = io.StringIO()
     doc.write(stream)
     return io.BytesIO(stream.getvalue().encode('utf-8'))
@@ -287,31 +316,17 @@ def get_cardboard_box_dxf_bytes(w, y, h, cardboard_thick, fold_gap=9.0):
     overlap = cardboard_thick 
     
     cross_pts = [
-        (-hw - overlap, hy),
-        (-hw - overlap, hy + total_offset_y),
-        (hw + overlap, hy + total_offset_y),
-        (hw + overlap, hy),
-        
-        (hw, hy),
-        (hw + total_offset_x, hy),
-        (hw + total_offset_x, -hy),
-        (hw, -hy),
-        
-        (hw + overlap, -hy),
-        (hw + overlap, -hy - total_offset_y),
-        (-hw - overlap, -hy - total_offset_y),
-        (-hw - overlap, -hy),
-        
-        (-hw, -hy),
-        (-hw - total_offset_x, -hy),
-        (-hw - total_offset_x, hy),
-        (-hw, hy)
+        (-hw - overlap, hy), (-hw - overlap, hy + total_offset_y),
+        (hw + overlap, hy + total_offset_y), (hw + overlap, hy),
+        (hw, hy), (hw + total_offset_x, hy), (hw + total_offset_x, -hy), (hw, -hy),
+        (hw + overlap, -hy), (hw + overlap, -hy - total_offset_y),
+        (-hw - overlap, -hy - total_offset_y), (-hw - overlap, -hy),
+        (-hw, -hy), (-hw - total_offset_x, -hy), (-hw - total_offset_x, hy), (-hw, hy)
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
     fold_y_1 = hy + half_gap
     fold_y_2 = hy + fold_gap + wall_h_y + half_gap
-    
     fold_x_1 = hw + half_gap
     fold_x_2 = hw + fold_gap + wall_h_x + half_gap
 
@@ -325,7 +340,6 @@ def get_cardboard_box_dxf_bytes(w, y, h, cardboard_thick, fold_gap=9.0):
         [(-fold_x_1, -hy), (-fold_x_1, hy)],
         [(-fold_x_2, -hy), (-fold_x_2, hy)]
     ]
-    
     for fold in folds:
         msp.add_lwpolyline(fold, close=False, dxfattribs={'color': 2})
         
@@ -339,9 +353,9 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, custom_thick, fold_gap=9.0):
     msp = doc.modelspace()
     
     dims = sorted([w, y, h], reverse=True)
-    dim_x = dims[0]  # Самая длинная сторона -> X
-    dim_y = dims[1]  # Вторая по величине сторона -> Y
-    wall_h = dims[2] # Третья сторона -> высота стенок
+    dim_x = dims[0]
+    dim_y = dims[1]
+    wall_h = dims[2]
     
     base_w = dim_x
     base_y = dim_y
@@ -361,31 +375,17 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, custom_thick, fold_gap=9.0):
     overlap = custom_thick 
     
     cross_pts = [
-        (-hw - overlap, hy),
-        (-hw - overlap, hy + total_offset_y),
-        (hw + overlap, hy + total_offset_y),
-        (hw + overlap, hy),
-        
-        (hw, hy),
-        (hw + total_offset_x, hy),
-        (hw + total_offset_x, -hy),
-        (hw, -hy),
-        
-        (hw + overlap, -hy),
-        (hw + overlap, -hy - total_offset_y),
-        (-hw - overlap, -hy - total_offset_y),
-        (-hw - overlap, -hy),
-        
-        (-hw, -hy),
-        (-hw - total_offset_x, -hy),
-        (-hw - total_offset_x, hy),
-        (-hw, hy)
+        (-hw - overlap, hy), (-hw - overlap, hy + total_offset_y),
+        (hw + overlap, hy + total_offset_y), (hw + overlap, hy),
+        (hw, hy), (hw + total_offset_x, hy), (hw + total_offset_x, -hy), (hw, -hy),
+        (hw + overlap, -hy), (hw + overlap, -hy - total_offset_y),
+        (-hw - overlap, -hy - total_offset_y), (-hw - overlap, -hy),
+        (-hw, -hy), (-hw - total_offset_x, -hy), (-hw - total_offset_x, hy), (-hw, hy)
     ]
     msp.add_lwpolyline(cross_pts, close=True, dxfattribs={'color': 1})
     
     fold_y_1 = hy + half_gap
     fold_y_2 = hy + fold_gap + wall_h_y + half_gap
-    
     fold_x_1 = hw + half_gap
     fold_x_2 = hw + fold_gap + wall_h_x + half_gap
 
@@ -399,7 +399,6 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, custom_thick, fold_gap=9.0):
         [(-fold_x_1, -hy), (-fold_x_1, hy)],
         [(-fold_x_2, -hy), (-fold_x_2, hy)]
     ]
-    
     for fold in folds:
         msp.add_lwpolyline(fold, close=False, dxfattribs={'color': 2})
         
@@ -408,7 +407,7 @@ def get_custom_cardboard_box_dxf_bytes(w, y, h, custom_thick, fold_gap=9.0):
     return io.BytesIO(stream.getvalue().encode('utf-8'))
 
 # --- UI ---
-st.title("Acrylic Display Generator")
+st.title("Acrylic Display & Box Generator")
 st.markdown("""
     <style>
     div.stDownloadButton > button {
@@ -424,123 +423,136 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-thickness = st.radio("Толщина материала", [3.0, 4.0], format_func=lambda x: f"{int(x)} мм", horizontal=True)
+thickness = st.radio("Толщина материала (акрил/база)", [3.0, 4.0], format_func=lambda x: f"{int(x)} мм", horizontal=True)
 
 col1, col2 = st.columns([1, 1])
 with col1:
     st.image("Picture.png", use_container_width=True)
 with col2:
-    inp_w = st.number_input("WIDTH - Внутренняя ширина (X)", 50, 800, 60)
-    inp_y = st.number_input("DEPTH - Внутренняя глубина (Y)", 50, 800, 60)
-    inp_z = st.number_input("HEIGHT - Внутренняя высота (Z)", 50, 800, 80)
+    inp_w = st.number_input("Внутренняя ширина (X)", 50, 800, 60)
+    inp_y = st.number_input("Внутренняя глубина (Y)", 50, 800, 60)
+    inp_z = st.number_input("Внутренняя высота (Z)", 50, 800, 80)
 
     width_x = inp_w + (2 * thickness)
     depth_y = inp_y + (2 * thickness)
     height_z = inp_z + thickness
 
-    if st.button("Generate Main"):
+    cardboard_thickness = st.radio("Толщина картона коробки", [7.0, 4.0], key="box_thick_main", format_func=lambda x: f"{int(x)} мм", horizontal=True)
+    box_fold_gap = 9.0 if cardboard_thickness == 7.0 else 6.0
+
+    # Единая кнопка генерации всего комплекта для размера
+    if st.button("Сгенерировать комплект (Acryl, Base, Leather, Box)"):
         is_w_large = inp_w > 150
         is_y_large = inp_y > 150
         is_z_large = inp_z > 150
         
-        st.session_state['dxf_data'] = get_dxf_bytes(width_x, depth_y, height_z, thickness, is_w_large, is_y_large, is_z_large)
-        # Имя файла по исходным размерам + толщина
-        st.session_state['main_file_name'] = f"Main_{inp_w}x{inp_y}x{inp_z}_({int(thickness)}mm).dxf"
-    
-    if 'dxf_data' in st.session_state:
-        st.download_button(
-            label="Скачать Main DXF", 
-            data=st.session_state['dxf_data'], 
-            file_name=st.session_state.get('main_file_name', 'Main.dxf')
-        )
-    st.divider()
-    st.checkbox("Name Plate", key='name_plate_val')
-    if st.button("Generate Base"):
-        include_plate = st.session_state.get('name_plate_val', False)
-        st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, include_plate, thickness, inp_w)
-        # Имя файла по исходным размерам + толщина
+        # 1. Acryl
+        st.session_state['acryl_dxf'] = get_dxf_bytes(width_x, depth_y, height_z, thickness, is_w_large, is_y_large, is_z_large)
+        st.session_state['acryl_file_name'] = f"Acryl_{inp_w}x{inp_y}x{inp_z}_({int(thickness)}mm).dxf"
+        
+        # 2. Base
+        st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, thickness, inp_w)
         st.session_state['base_file_name'] = f"Base_{inp_w}x{inp_y}_({int(thickness)}mm).dxf"
-    
-    if 'base_dxf' in st.session_state:
-        st.download_button(
-            label="Скачать Base DXF", 
-            data=st.session_state['base_dxf'], 
-            file_name=st.session_state.get('base_file_name', 'Base.dxf')
-        )
+        
+        # 3. Leather
+        st.session_state['leather_dxf'] = get_leather_dxf_bytes(inp_w, inp_y)
+        st.session_state['leather_file_name'] = f"Leather_{inp_w}x{inp_y}_({int(thickness)}mm).dxf"
+        
+        # 4. Box
+        st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, cardboard_thickness, box_fold_gap)
+        st.session_state['box_file_name'] = f"Box_{inp_w}x{inp_y}x{inp_z}_({int(cardboard_thickness)}mm).dxf"
+        
+        st.success("Комплект успешно сгенерирован!")
 
-if st.session_state.get('name_plate_val', False):
-    st.subheader("Name Plate Settings")
-    
-    max_c = 11 if inp_w <= 99 else 20
-    plate_text = st.text_input(f"Текст (max {max_c})", max_chars=max_c)
-    plate_font = st.selectbox("Шрифт", ["Girassol", "Pirata One", "Bigshot One"])
-    
-    w_top_val = 51.0 if inp_w <= 99 else 91.0
-    w_bot_val = 47.0 if inp_w <= 99 else 87.0
-    
-    max_text_width = 46.0 if inp_w <= 99 else 86.0
-    
-    if plate_text:
-        show_preview(w_top_val, w_bot_val, 13, plate_text, plate_font, max_text_width)
-        
-    if st.button("Generate Name Plate File"):
-        doc = ezdxf.new('R2010')
-        doc.units = units.MM
-        draw_trapezoid_plate(doc.modelspace(), 0, 0, w_top_val, w_bot_val, 13, 2, plate_text, plate_font, max_text_width)
-        
-        stream = io.StringIO()
-        doc.write(stream)
-        st.session_state['plate_dxf'] = io.BytesIO(stream.getvalue().encode('utf-8'))
-        
-        clean_text = "".join([c for c in plate_text if c.isalnum() or c in (' ', '_')]).strip()
-        st.session_state['plate_file_name'] = f"Plate_{clean_text if clean_text else 'Custom'}_({int(thickness)}mm).dxf"
-        
-    if 'plate_dxf' in st.session_state:
-        st.download_button(
-            label="Скачать Plate DXF", 
-            data=st.session_state['plate_dxf'], 
-            file_name=st.session_state.get('plate_file_name', 'Plate.dxf')
-        )
+    # Кнопки скачивания комплекта
+    if all(k in st.session_state for k in ['acryl_dxf', 'base_dxf', 'leather_dxf', 'box_dxf']):
+        st.markdown("### Скачать файлы комплекта:")
+        dl_c1, dl_c2, dl_c3, dl_c4 = st.columns(4)
+        with dl_c1:
+            st.download_button("Скачать Acryl DXF", data=st.session_state['acryl_dxf'], file_name=st.session_state.get('acryl_file_name', 'Acryl.dxf'))
+        with dl_c2:
+            st.download_button("Скачать Base DXF", data=st.session_state['base_dxf'], file_name=st.session_state.get('base_file_name', 'Base.dxf'))
+        with dl_c3:
+            st.download_button("Скачать Leather DXF", data=st.session_state['leather_dxf'], file_name=st.session_state.get('leather_file_name', 'Leather.dxf'))
+        with dl_c4:
+            st.download_button("Скачать Box DXF", data=st.session_state['box_dxf'], file_name=st.session_state.get('box_file_name', 'Box.dxf'))
 
 st.divider()
 
-# --- Раздел коробок в две колонки ---
-box_col1, box_col2 = st.columns(2)
+# --- Раздел пакетной генерации табличек (Name Plates) ---
+st.subheader("Пакетная генерация табличек (Name Plates)")
+np_size_type = st.radio("Размер таблички", ["Маленькая (max 11 символов, ширина до 99)", "Большая (max 20 символов)"], horizontal=True)
+is_small_plate = "Маленькая" in np_size_type
 
-with box_col1:
-    st.subheader("Cardboard Box")
-    cardboard_thickness = st.radio("Толщина картона коробки", [7.0, 4.0], key="box_thick_main", format_func=lambda x: f"{int(x)} мм", horizontal=True)
-    box_fold_gap = 9.0 if cardboard_thickness == 7.0 else 6.0
-        
-    if st.button("Generate Cardboard Box"):
-        st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, cardboard_thickness, box_fold_gap)
-        # Имя файла по исходным размерам дисплея + толщина картона
-        st.session_state['box_file_name'] = f"Box_{inp_w}x{inp_y}x{inp_z}_({int(cardboard_thickness)}mm).dxf"
-        
-    if 'box_dxf' in st.session_state:
-        st.download_button(
-            label="Скачать Box DXF", 
-            data=st.session_state['box_dxf'], 
-            file_name=st.session_state.get('box_file_name', 'Box.dxf')
-        )
+max_c = 11 if is_small_plate else 20
+w_top_val = 51.0 if is_small_plate else 91.0
+w_bot_val = 47.0 if is_small_plate else 87.0
+max_text_width = 46.0 if is_small_plate else 86.0
 
-with box_col2:
-    st.subheader("Custom Cardboard Box")
-    custom_thick = st.radio("Толщина картона кастомной коробки", [7.0, 4.0], key="box_thick_custom", format_func=lambda x: f"{int(x)} мм", horizontal=True)
-    custom_gap = 9.0 if custom_thick == 7.0 else 6.0
-    
+np_font = st.selectbox("Шрифт табличек", ["Girassol", "Pirata One", "Bigshot One"], key="batch_font")
+plate_lines_raw = st.text_area(f"Тексты табличек (каждая строка — новая табличка, макс. {max_c} символов на строку)")
+
+if st.button("Сгенерировать файл с табличками"):
+    lines = [line.strip() for line in plate_lines_raw.split("\n") if line.strip()]
+    if not lines:
+        st.warning("Введите хотя бы одну строчку текста!")
+    else:
+        doc = ezdxf.new('R2010')
+        doc.units = units.MM
+        msp = doc.modelspace()
+        
+        plate_w = w_top_val
+        plate_h = 13.0
+        spacing = 2.0
+        
+        for idx, text_line in enumerate(lines):
+            # Проверка лимита символов
+            if len(text_line) > max_c:
+                text_line = text_line[:max_c]
+                
+            col_idx = idx // 6
+            row_idx = idx % 6
+            
+            center_x = col_idx * (plate_w + spacing) + plate_w / 2
+            center_y = -row_idx * (plate_h + spacing) - plate_h / 2
+            
+            draw_trapezoid_plate(msp, center_x, center_y, w_top_val, w_bot_val, plate_h, 2, text_line, np_font, max_text_width)
+            
+        stream = io.StringIO()
+        doc.write(stream)
+        st.session_state['plates_dxf'] = io.BytesIO(stream.getvalue().encode('utf-8'))
+        st.session_state['plates_file_name'] = f"NamePlates_{len(lines)}pcs.dxf"
+        st.success(f"Успешно сгенерировано табличек: {len(lines)}")
+
+if 'plates_dxf' in st.session_state:
+    st.download_button(
+        label="Скачать файл с табличками (DXF)", 
+        data=st.session_state['plates_dxf'], 
+        file_name=st.session_state.get('plates_file_name', 'NamePlates.dxf')
+    )
+
+st.divider()
+
+# --- Раздел кастомной коробки ---
+st.subheader("Custom Cardboard Box")
+custom_thick = st.radio("Толщина картона кастомной коробки", [7.0, 4.0], key="box_thick_custom", format_func=lambda x: f"{int(x)} мм", horizontal=True)
+custom_gap = 9.0 if custom_thick == 7.0 else 6.0
+
+cc1, cc2, cc3 = st.columns(3)
+with cc1:
     c_w = st.number_input("Ширина", 50, 1500, 100)
+with cc2:
     c_y = st.number_input("Глубина", 50, 1500, 100)
+with cc3:
     c_h = st.number_input("Высота", 50, 1500, 100)
+
+if st.button("Generate Custom Cardboard Box"):
+    st.session_state['custom_box_dxf'] = get_custom_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_thick, custom_gap)
+    st.session_state['custom_box_file_name'] = f"CustomBox_{c_w}x{c_y}x{c_h}_({int(custom_thick)}mm).dxf"
     
-    if st.button("Generate Custom Cardboard Box"):
-        st.session_state['custom_box_dxf'] = get_custom_cardboard_box_dxf_bytes(c_w, c_y, c_h, custom_thick, custom_gap)
-        # Имя файла по кастомным введенным размерам + толщина картона
-        st.session_state['custom_box_file_name'] = f"CustomBox_{c_w}x{c_y}x{c_h}_({int(custom_thick)}mm).dxf"
-        
-    if 'custom_box_dxf' in st.session_state:
-        st.download_button(
-            label="Скачать Custom Box DXF", 
-            data=st.session_state['custom_box_dxf'], 
-            file_name=st.session_state.get('custom_box_file_name', 'CustomBox.dxf')
-        )
+if 'custom_box_dxf' in st.session_state:
+    st.download_button(
+        label="Скачать Custom Box DXF", 
+        data=st.session_state['custom_box_dxf'], 
+        file_name=st.session_state.get('custom_box_file_name', 'CustomBox.dxf')
+    )
