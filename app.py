@@ -181,34 +181,6 @@ def draw_trapezoid_plate(msp, center_x, center_y, w_top, w_bot, height, radius, 
             text_pts = [(p[0] + dx, p[1] + dy) for p in path_data]
             msp.add_lwpolyline(text_pts, close=True, dxfattribs={'color': 92})
 
-def show_preview(w_top, w_bot, height, text, font_name, max_allowed_width):
-    plt.close('all')
-    fig, ax = plt.subplots(figsize=(6, 2))
-    
-    pts = [(-w_top/2, height/2), (w_top/2, height/2), (w_bot/2, -height/2), (-w_bot/2, -height/2), (-w_top/2, height/2)]
-    x, y = zip(*pts)
-    ax.plot(x, y, color='#b0b0b0', linewidth=1.5, linestyle='--')
-    
-    if text:
-        fp = get_google_font_prop(font_name)
-        font_size = get_adaptive_font_size(text, height, font_name, max_allowed_width)
-        tp = TextPath((0, 0), text, size=font_size, prop=fp)
-        
-        bbox = tp.get_extents()
-        dx = -(bbox.x0 + bbox.x1) / 2
-        dy = -(bbox.y0 + bbox.y1) / 2
-        
-        for path_data in tp.to_polygons():
-            text_pts = [(p[0] + dx, p[1] + dy) for p in path_data]
-            px, py = zip(*text_pts)
-            ax.plot(px, py, color='#1f77b4', linewidth=1.0)
-    
-    ax.set_aspect('equal')
-    ax.autoscale()
-    ax.margins(0.1)
-    ax.axis('off')
-    st.pyplot(fig)
-
 def get_dxf_bytes(w1, y2, z, thickness, is_w_large, is_y_large, is_z_large):
     doc = ezdxf.new('R2010')
     doc.units = units.MM
@@ -240,7 +212,6 @@ def get_base_dxf_bytes(w, y, thickness, inp_w):
     red_bottom_y = -hh2 
     msp.add_lwpolyline([(-hw2, -hh2), (hw2, -hh2), (hw2, hh2), (-hw2, hh2)], close=True, dxfattribs={'color': 1})
     
-    # База ВСЕГДА генерируется с посадочным местом под шильдик
     fixed_line_w = 50.0 if inp_w <= 99 else 90.0
     half_line_w = fixed_line_w / 2
     bevel = 7
@@ -414,6 +385,12 @@ st.markdown("""
         background-color: #FF4B4B !important;
         color: white !important;
         border: 1px solid #FF4B4B !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        text-align: center !important;
+        padding: 0.5rem 1rem !important;
+        height: auto !important;
+        min-height: 42px !important;
     }
     div.stDownloadButton > button:hover {
         background-color: #FF2B2B !important;
@@ -437,45 +414,40 @@ with col2:
     depth_y = inp_y + (2 * thickness)
     height_z = inp_z + thickness
 
-    cardboard_thickness = st.radio("Толщина картона коробки", [7.0, 4.0], key="box_thick_main", format_func=lambda x: f"{int(x)} мм", horizontal=True)
-    box_fold_gap = 9.0 if cardboard_thickness == 7.0 else 6.0
+    # Изменен порядок на [4.0, 7.0], по умолчанию 4 мм
+    cardboard_thickness = st.radio("Толщина картона коробки", [4.0, 7.0], key="box_thick_main", format_func=lambda x: f"{int(x)} мм", horizontal=True)
+    box_fold_gap = 6.0 if cardboard_thickness == 4.0 else 9.0
 
-    # Единая кнопка генерации всего комплекта для размера
     if st.button("Сгенерировать комплект (Acryl, Base, Leather, Box)"):
         is_w_large = inp_w > 150
         is_y_large = inp_y > 150
         is_z_large = inp_z > 150
         
-        # 1. Acryl
         st.session_state['acryl_dxf'] = get_dxf_bytes(width_x, depth_y, height_z, thickness, is_w_large, is_y_large, is_z_large)
         st.session_state['acryl_file_name'] = f"Acryl_{inp_w}x{inp_y}x{inp_z}_({int(thickness)}mm).dxf"
         
-        # 2. Base
         st.session_state['base_dxf'] = get_base_dxf_bytes(width_x, depth_y, thickness, inp_w)
         st.session_state['base_file_name'] = f"Base_{inp_w}x{inp_y}_({int(thickness)}mm).dxf"
         
-        # 3. Leather
         st.session_state['leather_dxf'] = get_leather_dxf_bytes(inp_w, inp_y)
         st.session_state['leather_file_name'] = f"Leather_{inp_w}x{inp_y}_({int(thickness)}mm).dxf"
         
-        # 4. Box
         st.session_state['box_dxf'] = get_cardboard_box_dxf_bytes(width_x, depth_y, height_z, cardboard_thickness, box_fold_gap)
         st.session_state['box_file_name'] = f"Box_{inp_w}x{inp_y}x{inp_z}_({int(cardboard_thickness)}mm).dxf"
         
         st.success("Комплект успешно сгенерирован!")
 
-    # Кнопки скачивания комплекта
     if all(k in st.session_state for k in ['acryl_dxf', 'base_dxf', 'leather_dxf', 'box_dxf']):
         st.markdown("### Скачать файлы комплекта:")
         dl_c1, dl_c2, dl_c3, dl_c4 = st.columns(4)
         with dl_c1:
-            st.download_button("Скачать Acryl DXF", data=st.session_state['acryl_dxf'], file_name=st.session_state.get('acryl_file_name', 'Acryl.dxf'))
+            st.download_button("Acryl", data=st.session_state['acryl_dxf'], file_name=st.session_state.get('acryl_file_name', 'Acryl.dxf'))
         with dl_c2:
-            st.download_button("Скачать Base DXF", data=st.session_state['base_dxf'], file_name=st.session_state.get('base_file_name', 'Base.dxf'))
+            st.download_button("Base", data=st.session_state['base_dxf'], file_name=st.session_state.get('base_file_name', 'Base.dxf'))
         with dl_c3:
-            st.download_button("Скачать Leather DXF", data=st.session_state['leather_dxf'], file_name=st.session_state.get('leather_file_name', 'Leather.dxf'))
+            st.download_button("Leather", data=st.session_state['leather_dxf'], file_name=st.session_state.get('leather_file_name', 'Leather.dxf'))
         with dl_c4:
-            st.download_button("Скачать Box DXF", data=st.session_state['box_dxf'], file_name=st.session_state.get('box_file_name', 'Box.dxf'))
+            st.download_button("Box", data=st.session_state['box_dxf'], file_name=st.session_state.get('box_file_name', 'Box.dxf'))
 
 st.divider()
 
@@ -506,7 +478,6 @@ if st.button("Сгенерировать файл с табличками"):
         spacing = 2.0
         
         for idx, text_line in enumerate(lines):
-            # Проверка лимита символов
             if len(text_line) > max_c:
                 text_line = text_line[:max_c]
                 
@@ -535,8 +506,8 @@ st.divider()
 
 # --- Раздел кастомной коробки ---
 st.subheader("Custom Cardboard Box")
-custom_thick = st.radio("Толщина картона кастомной коробки", [7.0, 4.0], key="box_thick_custom", format_func=lambda x: f"{int(x)} мм", horizontal=True)
-custom_gap = 9.0 if custom_thick == 7.0 else 6.0
+custom_thick = st.radio("Толщина картона кастомной коробки", [4.0, 7.0], key="box_thick_custom", format_func=lambda x: f"{int(x)} мм", horizontal=True)
+custom_gap = 6.0 if custom_thick == 4.0 else 9.0
 
 cc1, cc2, cc3 = st.columns(3)
 with cc1:
