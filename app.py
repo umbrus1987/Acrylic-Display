@@ -400,15 +400,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-thickness = st.radio("Толщина материала (акрил/база)", [3.0, 4.0], format_func=lambda x: f"{int(x)} мм", horizontal=True)
+thickness = st.radio("Толщина материала (акрил)", [3.0, 4.0], format_func=lambda x: f"{int(x)} мм", horizontal=True)
 
 col1, col2 = st.columns([1, 1])
 with col1:
     st.image("Picture.png", use_container_width=True)
 with col2:
-    inp_w = st.number_input("Внутренняя ширина (X)", 50, 800, 60)
-    inp_y = st.number_input("Внутренняя глубина (Y)", 50, 800, 60)
-    inp_z = st.number_input("Внутренняя высота (Z)", 50, 800, 80)
+    inp_w = st.number_input("WIDTH - Внутренняя ширина", 50, 800, 60)
+    inp_y = st.number_input("DEPTH - Внутренняя глубина", 50, 800, 60)
+    inp_z = st.number_input("HEIGHTВнутренняя высота", 50, 800, 80)
 
     width_x = inp_w + (2 * thickness)
     depth_y = inp_y + (2 * thickness)
@@ -452,7 +452,7 @@ with col2:
 st.divider()
 
 # --- Раздел пакетной генерации табличек (Name Plates) ---
-st.subheader("Пакетная генерация табличек (Name Plates)")
+st.subheader("Пакетная генерация табличек")
 np_size_type = st.radio("Размер таблички", ["Маленькая (max 11 символов, ширина до 99)", "Большая (max 20 символов)"], horizontal=True)
 is_small_plate = "Маленькая" in np_size_type
 
@@ -497,7 +497,7 @@ if st.button("Сгенерировать файл с табличками"):
 
 if 'plates_dxf' in st.session_state:
     st.download_button(
-        label="Скачать файл с табличками (DXF)", 
+        label="Скачать файл с табличками", 
         data=st.session_state['plates_dxf'], 
         file_name=st.session_state.get('plates_file_name', 'NamePlates.dxf')
     )
