@@ -408,7 +408,7 @@ with col1:
 with col2:
     inp_w = st.number_input("WIDTH - Внутренняя ширина", 50, 800, 60)
     inp_y = st.number_input("DEPTH - Внутренняя глубина", 50, 800, 60)
-    inp_z = st.number_input("HEIGHTВнутренняя высота", 50, 800, 80)
+    inp_z = st.number_input("HEIGHT - Внутренняя высота", 50, 800, 80)
 
     width_x = inp_w + (2 * thickness)
     depth_y = inp_y + (2 * thickness)
